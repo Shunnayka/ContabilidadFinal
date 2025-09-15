@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block css_files %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/contabilidad.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header">
+        <h2>Contabilidad General</h2>
+        <button class="btn btn-primary" onclick="exportToPDF()">Exportar PDF</button>
+    </div>
+
+    <div class="filters-container">
+        <div class="filter-group">
+            <label for="mes">Mes:</label>
+            <select id="mes" onchange="applyFilters()">
+                <option value="">Todos los meses</option>
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="ano">Año:</label>
+            <select id="ano" onchange="applyFilters()">
+                <option value="">Todos los años</option>
+                {% for year in range(2020, 2031) %}
+                <option value="{{ year }}">{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="btn btn-secondary" onclick="clearFilters()">Limpiar Filtros</button>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table" id="contabilidadTable">
+            <thead>
+                <tr>
+                    <th>Cédula</th>
+                    <th>Nombre</th>
+                    <th>Cargo</th>
+                    <th>Total Ingresos</th>
+                    <th>Total Egresos</th>
+                    <th>Líquido a Pagar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in contabilidad_data %}
+                <tr>
+                    <td>{{ item.cedula }}</td>
+                    <td>{{ item.nombre }}</td>
+                    <td>{{ item.cargo }}</td>
+                    <td class="currency">${{ "%.2f"|format(item.total_ingresos or 0) }}</td>
+                    <td class="currency">${{ "%.2f"|format(item.total_egresos or 0) }}</td>
+                    <td class="currency">${{ "%.2f"|format(item.liquido_pagar or 0) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="totals-container">
+        <div class="total-card">
+            <h3>Total Ingresos</h3>
+            <p class="total-amount">${{ "%.2f"|format(totales.total_ingresos) }}</p>
+        </div>
+        <div class="total-card">
+            <h3>Total Egresos</h3>
+            <p class="total-amount">${{ "%.2f"|format(totales.total_egresos) }}</p>
+        </div>
+        <div class="total-card">
+            <h3>Total Líquido</h3>
+            <p class="total-amount">${{ "%.2f"|format(totales.total_liquido) }}</p>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/contabilidad.js') }}"></script>
+{% endblock %}

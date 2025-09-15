@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block css_files %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/usuarios.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header">
+        <h2>Administración de Usuarios</h2>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="table-container">
+        <table class="data-table" id="usersTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Fecha Registro</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr data-id="{{ user.id }}">
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.usuario }}</td>
+                    <td>{{ user.correo }}</td>
+                    <td>
+                        <span class="role-badge {{ user.cargo|lower }}">{{ user.cargo }}</span>
+                    </td>
+                    <td>{{ user.fecha_registro.split(' ')[0] if user.fecha_registro else 'N/A' }}</td>
+                    <td class="actions">
+                        <button class="btn btn-sm btn-info" onclick="openEditModal({{ user.id }})">Modificar</button>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDelete({{ user.id }}, '{{ user.usuario }}')" 
+                                {{ 'disabled' if user.id == session.user_id }}>
+                            Eliminar
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal para modificar usuario -->
+<div id="editUserModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('editUserModal')">&times;</span>
+        <h3>Modificar Usuario</h3>
+        
+        <form id="editUserForm" method="POST" action="{{ url_for('modificar_usuario') }}">
+            <input type="hidden" id="edit_user_id" name="user_id">
+            
+            <div class="form-group">
+                <label for="edit_usuario">Usuario:</label>
+                <input type="text" id="edit_usuario" name="usuario" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit_correo">Correo:</label>
+                <input type="email" id="edit_correo" name="correo" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="edit_cargo">Rol:</label>
+                <select id="edit_cargo" name="cargo" required>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Empleado">Empleado</option>
+                </select>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editUserModal')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('deleteConfirmModal')">&times;</span>
+        <h3>Confirmar Eliminación</h3>
+        <p id="deleteConfirmMessage">¿Está seguro de que desea eliminar este usuario?</p>
+        <div class="form-buttons">
+            <form id="deleteUserForm" method="POST" action="{{ url_for('eliminar_usuario') }}" style="display: inline;">
+                <input type="hidden" id="delete_user_id" name="user_id">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/usuarios.js') }}"></script>
+{% endblock %}

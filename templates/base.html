@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contalogic - Sistema Contable</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+     <!-- CSS específico de cada página -->
+            {% block css_files %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-frame">
+                <h1>Contalogic</h1>
+                <p>Corporación Alfa</p>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <nav class="menu">
+                <a href="{{ url_for('home') }}" class="menu-item">Inicio</a>
+                <a href="{{ url_for('empleados') }}" class="menu-item">Registro de Empleados</a>
+                <a href="{{ url_for('rol_pagos') }}" class="menu-item">Rol de Pagos</a>
+                <a href="{{ url_for('contabilidad') }}" class="menu-item">Contabilidad General</a>
+                
+                {% if session.user_role == 'Administrador' %}
+                <a href="{{ url_for('usuarios') }}" class="menu-item">Administración de Usuarios</a>
+                {% endif %}
+            </nav>
+            
+            <div class="separator"></div>
+            
+            <div class="user-info">
+                <p>Usuario: {{ session.username }}</p>
+                <p>Rol: {{ session.user_role }}</p>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
+            </div>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div class="main-content">
+            <!-- Mensajes flash -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
+            <!-- Contenido específico de cada página -->
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

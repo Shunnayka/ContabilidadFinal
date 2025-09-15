@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% block css_files %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/rol_pagos.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header">
+        <h2>Gestión de Rol de Pagos</h2>
+        <button class="btn btn-primary" onclick="openModal('newRolModal')">Nuevo Rol de Pagos</button>
+    </div>
+
+    <div class="filters-container">
+        <div class="filter-group">
+            <label for="empleado">Seleccionar Empleado:</label>
+            <select id="empleado" onchange="filterByEmpleado()">
+                <option value="">Todos los empleados</option>
+                {% for empleado in empleados %}
+                <option value="{{ empleado.id }}">{{ empleado.apellidos }} {{ empleado.nombres }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="mes">Mes:</label>
+            <select id="mes" onchange="filterByPeriodo()">
+                <option value="">Todos los meses</option>
+                {% for mes in range(1, 13) %}
+                <option value="{{ mes }}">{{ mes }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label for="ano">Año:</label>
+            <select id="ano" onchange="filterByPeriodo()">
+                <option value="">Todos los años</option>
+                {% for ano in range(2020, 2031) %}
+                <option value="{{ ano }}">{{ ano }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <button class="btn btn-secondary" onclick="clearFilters()">Limpiar Filtros</button>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table" id="rolesTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Empleado</th>
+                    <th>Mes</th>
+                    <th>Año</th>
+                    <th>Total Ingresos</th>
+                    <th>Total Egresos</th>
+                    <th>Líquido</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rol in roles %}
+                <tr data-id="{{ rol.id }}" data-empleado="{{ rol.empleado_id }}">
+                    <td>{{ rol.id }}</td>
+                    <td>{{ rol.empleado_nombre }}</td>
+                    <td>{{ rol.mes }}</td>
+                    <td>{{ rol.ano }}</td>
+                    <td class="currency">${{ "%.2f"|format(rol.total_ingresos or 0) }}</td>
+                    <td class="currency">${{ "%.2f"|format(rol.total_egresos or 0) }}</td>
+                    <td class="currency highlight">${{ "%.2f"|format(rol.liquido_pagar or 0) }}</td>
+                    <td class="actions">
+                        <button class="btn btn-sm btn-info" onclick="viewRolDetails({{ rol.id }})">Ver</button>
+                        <button class="btn btn-sm btn-warning" onclick="editRol({{ rol.id }})">Editar</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteRol({{ rol.id }})">Eliminar</button>
+                        <button class="btn btn-sm btn-secondary" onclick="exportRolPDF({{ rol.id }})">PDF</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- Modal para nuevo rol de pagos -->
+<div id="newRolModal" class="modal">
+    <div class="modal-content large-modal">
+        <span class="close" onclick="closeModal('newRolModal')">&times;</span>
+        <h3>Nuevo Rol de Pagos</h3>
+        
+        <form id="newRolForm" method="POST" action="{{ url_for('crear_rol') }}">
+            <div class="form-section">
+                <h4>Fecha y Empleado</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="dia">Día:</label>
+                        <select id="dia" name="dia" required>
+                            {% for dia in range(1, 32) %}
+                            <option value="{{ dia }}" {{ 'selected' if dia == current_day }}>{{ dia }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="mes_nuevo">Mes:</label>
+                        <select id="mes_nuevo" name="mes" required>
+                            {% for mes in range(1, 13) %}
+                            <option value="{{ mes }}" {{ 'selected' if mes == current_month }}>{{ mes }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ano_nuevo">Año:</label>
+                        <select id="ano_nuevo" name="ano" required>
+                            {% for ano in range(2020, 2031) %}
+                            <option value="{{ ano }}" {{ 'selected' if ano == current_year }}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="empleado_id">Empleado:</label>
+                    <select id="empleado_id" name="empleado_id" required onchange="loadEmpleadoData()">
+                        <option value="">Seleccionar empleado</option>
+                        {% for empleado in empleados %}
+                        <option value="{{ empleado.id }}">{{ empleado.apellidos }} {{ empleado.nombres }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div id="empleadoInfo" class="empleado-info" style="display: none;">
+                    <div class="info-card">
+                        <h5>Información del Empleado</h5>
+                        <p id="empleadoCedula">Cédula: </p>
+                        <p id="empleadoIngreso">Fecha de Ingreso: </p>
+                        <p id="empleadoSalario">Salario Base: </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Datos Básicos</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sueldo">Sueldo Base ($):</label>
+                        <input type="number" id="sueldo" name="sueldo" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dias_trabajo">Días Trabajados:</label>
+                        <input type="number" id="dias_trabajo" name="dias_trabajo" min="0" max="31" value="30" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bonificacion">Bonificación ($):</label>
+                        <input type="number" id="bonificacion" name="bonificacion" step="0.01" min="0" value="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="transporte">Transporte ($):</label>
+                        <input type="number" id="transporte" name="transporte" step="0.01" min="0" value="0.00">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="alimentacion">Alimentación ($):</label>
+                        <input type="number" id="alimentacion" name="alimentacion" step="0.01" min="0" value="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="num_horas_extras">Horas Extras:</label>
+                        <input type="number" id="num_horas_extras" name="num_horas_extras" min="0" value="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tipo_horas_extras">Tipo Horas Extras:</label>
+                        <select id="tipo_horas_extras" name="tipo_horas_extras">
+                            <option value="Ordinarias">Ordinarias</option>
+                            <option value="Extraordinarias">Extraordinarias</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="otros_ingresos">Otros Ingresos ($):</label>
+                        <input type="number" id="otros_ingresos" name="otros_ingresos" step="0.01" min="0" value="0.00">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Configuraciones</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="decimo_tercero_cobro">Décimo 3ro Cobro:</label>
+                        <select id="decimo_tercero_cobro" name="decimo_tercero_cobro">
+                            <option value="Mensual">Mensual</option>
+                            <option value="Anual">Anual</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="decimo_cuarto_cobro">Décimo 4to Cobro:</label>
+                        <select id="decimo_cuarto_cobro" name="decimo_cuarto_cobro">
+                            <option value="Mensual">Mensual</option>
+                            <option value="Anual">Anual</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Descuentos</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prestamos_iess">Préstamos IESS ($):</label>
+                        <input type="number" id="prestamos_iess" name="prestamos_iess" step="0.01" min="0" value="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="impuesto_renta">Impuesto Renta ($):</label>
+                        <input type="number" id="impuesto_renta" name="impuesto_renta" step="0.01" min="0" value="0.00">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="seguro_privado">Seguro Privado ($):</label>
+                        <input type="number" id="seguro_privado" name="seguro_privado" step="0.01" min="0" value="0.00">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comisariato">Comisariato ($):</label>
+                        <input type="number" id="comisariato" name="comisariato" step="0.01" min="0" value="0.00">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" onclick="calculateTotals()">Calcular Totales</button>
+                <button type="submit" class="btn btn-primary">Guardar Rol</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('newRolModal')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para editar rol de pagos -->
+<div id="editRolModal" class="modal">
+    <div class="modal-content large-modal">
+        <span class="close" onclick="closeModal('editRolModal')">&times;</span>
+        <h3>Editar Rol de Pagos</h3>
+        
+        <form id="editRolForm" method="POST" action="{{ url_for('actualizar_rol') }}">
+            <input type="hidden" id="edit_rol_id" name="rol_id">
+            
+            <div class="form-section">
+                <h4>Fecha y Empleado</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_dia">Día:</label>
+                        <select id="edit_dia" name="dia" required>
+                            {% for dia in range(1, 32) %}
+                            <option value="{{ dia }}">{{ dia }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_mes">Mes:</label>
+                        <select id="edit_mes" name="mes" required>
+                            {% for mes in range(1, 13) %}
+                            <option value="{{ mes }}">{{ mes }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_ano">Año:</label>
+                        <select id="edit_ano" name="ano" required>
+                            {% for ano in range(2020, 2031) %}
+                            <option value="{{ ano }}">{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit_empleado_id">Empleado:</label>
+                    <select id="edit_empleado_id" name="empleado_id" required onchange="loadEditEmpleadoData()">
+                        <option value="">Seleccionar empleado</option>
+                        {% for empleado in empleados %}
+                        <option value="{{ empleado.id }}">{{ empleado.apellidos }} {{ empleado.nombres }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div id="editEmpleadoInfo" class="empleado-info" style="display: none;">
+                    <div class="info-card">
+                        <h5>Información del Empleado</h5>
+                        <p id="editEmpleadoCedula">Cédula: </p>
+                        <p id="editEmpleadoIngreso">Fecha de Ingreso: </p>
+                        <p id="editEmpleadoSalario">Salario Base: </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Datos Básicos</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_sueldo">Sueldo Base ($):</label>
+                        <input type="number" id="edit_sueldo" name="sueldo" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_dias_trabajo">Días Trabajados:</label>
+                        <input type="number" id="edit_dias_trabajo" name="dias_trabajo" min="0" max="31" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_bonificacion">Bonificación ($):</label>
+                        <input type="number" id="edit_bonificacion" name="bonificacion" step="0.01" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_transporte">Transporte ($):</label>
+                        <input type="number" id="edit_transporte" name="transporte" step="0.01" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_alimentacion">Alimentación ($):</label>
+                        <input type="number" id="edit_alimentacion" name="alimentacion" step="0.01" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_num_horas_extras">Horas Extras:</label>
+                        <input type="number" id="edit_num_horas_extras" name="num_horas_extras" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_tipo_horas_extras">Tipo Horas Extras:</label>
+                        <select id="edit_tipo_horas_extras" name="tipo_horas_extras">
+                            <option value="Ordinarias">Ordinarias</option>
+                            <option value="Extraordinarias">Extraordinarias</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_otros_ingresos">Otros Ingresos ($):</label>
+                        <input type="number" id="edit_otros_ingresos" name="otros_ingresos" step="0.01" min="0">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Configuraciones</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_decimo_tercero_cobro">Décimo 3ro Cobro:</label>
+                        <select id="edit_decimo_tercero_cobro" name="decimo_tercero_cobro">
+                            <option value="Mensual">Mensual</option>
+                            <option value="Anual">Anual</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_decimo_cuarto_cobro">Décimo 4to Cobro:</label>
+                        <select id="edit_decimo_cuarto_cobro" name="decimo_cuarto_cobro">
+                            <option value="Mensual">Mensual</option>
+                            <option value="Anual">Anual</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h4>Descuentos</h4>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_prestamos_iess">Préstamos IESS ($):</label>
+                        <input type="number" id="edit_prestamos_iess" name="prestamos_iess" step="0.01" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_impuesto_renta">Impuesto Renta ($):</label>
+                        <input type="number" id="edit_impuesto_renta" name="impuesto_renta" step="0.01" min="0">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit_seguro_privado">Seguro Privado ($):</label>
+                        <input type="number" id="edit_seguro_privado" name="seguro_privado" step="0.01" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit_comisariato">Comisariato ($):</label>
+                        <input type="number" id="edit_comisariato" name="comisariato" step="0.01" min="0">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" onclick="calculateEditTotals()">Calcular Totales</button>
+                <button type="submit" class="btn btn-primary">Actualizar Rol</button>
+                <button type="button" class="btn btn-danger" onclick="closeModal('editRolModal')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para ver detalles del rol -->
+<div id="viewRolModal" class="modal">
+    <div class="modal-content large-modal">
+        <span class="close" onclick="closeModal('viewRolModal')">&times;</span>
+        <h3>Detalles del Rol de Pagos</h3>
+        <div id="rolDetailsContent"></div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('deleteConfirmModal')">&times;</span>
+        <h3>Confirmar Eliminación</h3>
+        <p>¿Está seguro de que desea eliminar este rol de pagos?</p>
+        <div class="form-buttons">
+            <form id="deleteRolForm" method="POST" action="{{ url_for('eliminar_rol') }}" style="display: inline;">
+                <input type="hidden" id="delete_rol_id" name="rol_id">
+                <button type="submit" class="btn btn-danger">Eliminar</button>
+            </form>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/rol_pagos.js') }}"></script>
+{% endblock %}

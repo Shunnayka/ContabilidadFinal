@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block css_files %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/empleados.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="page-header">
+        <h2>Gestión de Empleados</h2>
+        <button class="btn btn-primary" onclick="openModal('addEmployeeModal')">Agregar Empleado</button>
+    </div>
+    
+    <div class="table-container">
+        <table class="data-table" id="employeesTable">
+            <thead>
+                <tr>
+                    <th>Nombres</th>
+                    <th>Apellidos</th>
+                    <th>Cédula</th>
+                    <th>Correo</th>
+                    <th>Cargo</th>
+                    <th>Salario</th>
+                    <th>Fecha Ingreso</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                <tr data-id="{{ employee.id }}">
+                    <td>{{ employee.nombres }}</td>
+                    <td>{{ employee.apellidos }}</td>
+                    <td>{{ employee.cedula }}</td>
+                    <td>{{ employee.correo }}</td>
+                    <td>{{ employee.cargo }}</td>
+                    <td>${{ "%.2f"|format(employee.salario) }}</td>
+                    <td>{{ employee.fecha_ingreso }}</td>
+                    <td>
+                        <span class="status-badge {{ 'active' if employee.activo else 'inactive' }}">
+                            {{ 'Activo' if employee.activo else 'Inactivo' }}
+                        </span>
+                    </td>
+                    <td class="actions">
+                        <button class="btn btn-sm btn-info" onclick="editEmployee({{ employee.id }})">Editar</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteEmployee({{ employee.id }})">Eliminar</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal para agregar empleado -->
+<div id="addEmployeeModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('addEmployeeModal')">&times;</span>
+        <h3>Agregar Nuevo Empleado</h3>
+        
+        <form id="addEmployeeForm" method="POST" action="{{ url_for('agregar_empleado') }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="nombres">Nombres:</label>
+                    <input type="text" id="nombres" name="nombres" required>
+                </div>
+                <div class="form-group">
+                    <label for="apellidos">Apellidos:</label>
+                    <input type="text" id="apellidos" name="apellidos" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cedula">Cédula:</label>
+                    <input type="text" id="cedula" name="cedula" required>
+                </div>
+                <div class="form-group">
+                    <label for="correo">Correo:</label>
+                    <input type="email" id="correo" name="correo" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cargo">Cargo:</label>
+                    <select id="cargo" name="cargo" required>
+                        <option value="">Seleccione un cargo</option>
+                        <option value="Dirección General">Dirección General</option>
+                        <option value="Finanzas">Finanzas</option>
+                        <option value="Operaciones">Operaciones</option>
+                        <option value="Recursos Humanos">Recursos Humanos</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Tecnología">Tecnología</option>
+                        <option value="Ventas">Ventas</option>
+                        <option value="Contabilidad">Contabilidad</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="salario">Salario:</label>
+                    <input type="number" id="salario" name="salario" step="0.01" min="0" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="fecha_ingreso">Fecha de Ingreso:</label>
+                <input type="date" id="fecha_ingreso" name="fecha_ingreso" required>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addEmployeeModal')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para editar empleado -->
+<div id="editEmployeeModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('editEmployeeModal')">&times;</span>
+        <h3>Editar Empleado</h3>
+        
+        <form id="editEmployeeForm" method="POST" action="">
+            <input type="hidden" id="edit_id" name="id">
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_nombres">Nombres:</label>
+                    <input type="text" id="edit_nombres" name="nombres" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_apellidos">Apellidos:</label>
+                    <input type="text" id="edit_apellidos" name="apellidos" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_cedula">Cédula:</label>
+                    <input type="text" id="edit_cedula" name="cedula" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_correo">Correo:</label>
+                    <input type="email" id="edit_correo" name="correo" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_cargo">Cargo:</label>
+                    <select id="edit_cargo" name="cargo" required>
+                        <option value="">Seleccione un cargo</option>
+                        <option value="Dirección General">Dirección General</option>
+                        <option value="Finanzas">Finanzas</option>
+                        <option value="Operaciones">Operaciones</option>
+                        <option value="Recursos Humanos">Recursos Humanos</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Tecnología">Tecnología</option>
+                        <option value="Ventas">Ventas</option>
+                        <option value="Contabilidad">Contabilidad</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit_salario">Salario:</label>
+                    <input type="number" id="edit_salario" name="salario" step="0.01" min="0" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="edit_fecha_ingreso">Fecha de Ingreso:</label>
+                    <input type="date" id="edit_fecha_ingreso" name="fecha_ingreso" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_activo">Estado:</label>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="edit_activo" name="activo" value="true">
+                        <label for="edit_activo">Activo</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="submit" class="btn btn-primary">Actualizar</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editEmployeeModal')">Cancelar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('deleteConfirmModal')">&times;</span>
+        <h3>Confirmar Eliminación</h3>
+        <p>¿Está seguro de que desea eliminar este empleado?</p>
+        <div class="form-buttons">
+            <button type="button" class="btn btn-danger" onclick="confirmDelete()">Eliminar</button>
+            <button type="button" class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/empleados.js') }}"></script>
+{% endblock %}
