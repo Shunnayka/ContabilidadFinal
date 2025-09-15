@@ -1,4 +1,5 @@
 from datetime import datetime
+import os
 from flask import Flask, jsonify, render_template, request, redirect, url_for, session, flash
 import hashlib
 import re
@@ -819,4 +820,7 @@ def eliminar_usuario():
 
 if __name__ == '__main__':
     create_tables()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    # ¡Crucial! host='0.0.0.0'
+    app.run(host='0.0.0.0', port=port)
+
