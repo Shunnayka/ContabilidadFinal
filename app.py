@@ -8,7 +8,12 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import threading
-from database import add_employee, create_tables, delete_employee, get_all_employees, get_db_connection, get_employee_by_id, get_user_by_username, update_employee, verify_password
+from database import (
+    add_employee, create_tables, delete_employee, get_all_employees, 
+    get_db_connection, get_employee_by_id, get_user_by_username, 
+    verify_password, determine_user_role, create_user_with_auto_role, 
+    get_user_count, update_user_password, get_email_by_username
+)
 from functools import wraps
 
 app = Flask(__name__)
@@ -60,39 +65,42 @@ def send_recovery_email(to_email, recovery_code):
         print(f"SIMULACIÓN: Código para {to_email}: {recovery_code}")
         return True
 
-def get_email_by_username(username):
-    """Obtener email de usuario"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT correo FROM usuarios WHERE usuario = ?", (username,))
-        result = cursor.fetchone()
-        return result['correo'] if result else None
-    except Exception as e:
-        print(f"Error buscando email: {e}")
-        return None
-    finally:
-        conn.close()
 
-# Rutas de autenticación
+# Rutas de autenticación - CORREGIDA
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        role = request.form['role']
+        try:
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            
+            print(f"Intento de login para usuario: {username}")  # Debug
+            
+            if not username or not password:
+                flash('Usuario y contraseña son obligatorios', 'error')
+                return render_template('login.html')
+            
+            user = get_user_by_username(username)
+            
+            if user and verify_password(user['contraseña'], password):
+                # Determinar automáticamente el rol
+                role = determine_user_role(user)
+                print(f"Usuario {username} autenticado como: {role}")  # Debug
+                
+                session['logged_in'] = True
+                session['user_id'] = user['id']
+                session['username'] = user['usuario']
+                session['user_role'] = role
+                flash('Inicio de sesión exitoso', 'success')
+                return redirect(url_for('home'))
+            else:
+                flash('Credenciales incorrectas', 'error')
         
-        user = get_user_by_username(username)
-        
-        if user and verify_password(user['contraseña'], password) and user['cargo'] == role:
-            session['logged_in'] = True
-            session['user_id'] = user['id']
-            session['username'] = user['usuario']
-            session['user_role'] = user['cargo']
-            flash('Inicio de sesión exitoso', 'success')
-            return redirect(url_for('home'))
-        else:
-            flash('Credenciales incorrectas', 'error')
+        except Exception as e:
+            print(f"Error en login: {str(e)}")  # Debug
+            import traceback
+            traceback.print_exc()  # Esto mostrará el error completo en la terminal
+            flash('Error interno del servidor. Por favor, intenta nuevamente.', 'error')
     
     return render_template('login.html')
 
@@ -124,58 +132,45 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-        role = request.form['role']
-        email = request.form['email']
-        
-        # Validaciones
-        if not all([username, password, confirm_password, role, email]):
-            flash('Todos los campos son obligatorios', 'error')
-            return render_template('register.html')
-        
-        if password != confirm_password:
-            flash('Las contraseñas no coinciden', 'error')
-            return render_template('register.html')
-        
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-            flash('Formato de correo electrónico inválido', 'error')
-            return render_template('register.html')
-        
-        # Verificar fortaleza de contraseña
-        if (len(password) < 8 or not re.search(r'[A-Z]', password) or 
-            not re.search(r'[a-z]', password) or not re.search(r'[0-9]', password)):
-            flash('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número', 'error')
-            return render_template('register.html')
-        
-        # Verificar si el usuario ya existe
-        conn = get_db_connection()
-        cursor = conn.cursor()
         try:
-            cursor.execute("SELECT COUNT(*) FROM usuarios WHERE usuario = ? OR correo = ?", 
-                          (username, email))
-            if cursor.fetchone()[0] > 0:
-                flash('El usuario o correo ya existen', 'error')
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            confirm_password = request.form.get('confirm_password', '').strip()
+            email = request.form.get('email', '').strip()
+            
+            # Validaciones básicas
+            if not all([username, password, confirm_password, email]):
+                flash('Todos los campos son obligatorios', 'error')
                 return render_template('register.html')
             
-            # Hash de la contraseña
-            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+            if password != confirm_password:
+                flash('Las contraseñas no coinciden', 'error')
+                return render_template('register.html')
             
-            # Insertar usuario
-            cursor.execute(
-                "INSERT INTO usuarios (usuario, contraseña, cargo, correo) VALUES (?, ?, ?, ?)",
-                (username, hashed_password, role, email)
-            )
-            conn.commit()
-            flash('Usuario registrado correctamente', 'success')
-            return redirect(url_for('login'))
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                flash('Formato de correo electrónico inválido', 'error')
+                return render_template('register.html')
             
+            # Verificar fortaleza de contraseña
+            if (len(password) < 8 or not re.search(r'[A-Z]', password) or 
+                not re.search(r'[a-z]', password) or not re.search(r'[0-9]', password)):
+                flash('La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula y un número', 'error')
+                return render_template('register.html')
+            
+            # Crear usuario con rol automático
+            success, role = create_user_with_auto_role(username, password, email)
+            
+            if success:
+                flash(f'Usuario registrado correctamente como {role}', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash('El usuario o correo ya existen', 'error')
+                
         except Exception as e:
+            print(f"Error en registro: {str(e)}")
+            import traceback
+            traceback.print_exc()
             flash(f'Error al registrar usuario: {str(e)}', 'error')
-        finally:
-            conn.close()
-    
     return render_template('register.html')
 
 @app.route('/password_recovery', methods=['GET', 'POST'])
@@ -232,22 +227,12 @@ def password_recovery():
                 return render_template('password_recovery.html', step=3, username=username)
             
             # Actualizar contraseña
-            hashed_password = hashlib.sha256(password.encode()).hexdigest()
-            
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            try:
-                cursor.execute(
-                    "UPDATE usuarios SET contraseña = ? WHERE usuario = ?",
-                    (hashed_password, username)
-                )
-                conn.commit()
+            from database import update_user_password
+            if update_user_password(username, password):
                 flash('Contraseña actualizada correctamente', 'success')
                 return redirect(url_for('login'))
-            except Exception as e:
+            else:
                 flash('Error al actualizar contraseña', 'error')
-            finally:
-                conn.close()
     
     return render_template('password_recovery.html', step=1)
 
@@ -821,6 +806,4 @@ def eliminar_usuario():
 if __name__ == '__main__':
     create_tables()
     port = int(os.environ.get("PORT", 5000))
-    # ¡Crucial! host='0.0.0.0'
-    app.run(host='0.0.0.0', port=port)
-
+    app.run(host='0.0.0.0', port=port, debug=True)

@@ -127,7 +127,6 @@ def get_user_by_username(username):
     return user
 
 def verify_password(stored_password, provided_password):
-    # En una aplicación real, deberías usar bcrypt o similar
     hashed_password = hashlib.sha256(provided_password.encode()).hexdigest()
     return stored_password == hashed_password
 
@@ -182,6 +181,116 @@ def delete_employee(employee_id):
         return True
     except Exception as e:
         print(f"Error deleting employee: {e}")
+        return False
+    finally:
+        conn.close()
+
+# NUEVAS FUNCIONES PARA DETECCIÓN AUTOMÁTICA DE ROLES
+def get_user_count():
+    """Obtener el número total de usuarios registrados"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) as count FROM usuarios")
+    count = cursor.fetchone()['count']
+    conn.close()
+    return count
+
+def create_user_with_auto_role(username, password, email):
+    """Crear usuario con rol automático"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Determinar rol automáticamente
+        user_count = get_user_count()
+        
+        if user_count == 0:
+            # Primer usuario será Administrador
+            role = "Administrador"
+        else:
+            # Usuarios siguientes serán Empleado por defecto
+            role = "Empleado"
+        
+        # Hash de la contraseña
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        
+        # Insertar usuario
+        cursor.execute(
+            "INSERT INTO usuarios (usuario, contraseña, cargo, correo) VALUES (?, ?, ?, ?)",
+            (username, hashed_password, role, email)
+        )
+        conn.commit()
+        return True, role
+        
+    except sqlite3.IntegrityError:
+        return False, None
+    except Exception as e:
+        print(f"Error creating user: {e}")
+        return False, None
+    finally:
+        conn.close()
+
+def determine_user_role(user):
+    """
+    Determina automáticamente el rol del usuario basado en diferentes criterios
+    """
+    try:
+        # Si user es None, retornar Empleado por defecto
+        if user is None:
+            return 'Empleado'
+            
+        # Método 1: Si el usuario tiene un campo 'cargo' en la base de datos
+        if 'cargo' in user and user['cargo']:
+            return user['cargo']
+        
+        # Método 2: Por nombre de usuario (administradores comunes)
+        admin_usernames = ['admin', 'administrador', 'superuser', 'alfa_admin', 'davidorbep']
+        if user['usuario'].lower() in admin_usernames:
+            return 'Administrador'
+        
+        # Método 3: Por prefijo en el username
+        if user['usuario'].lower().startswith(('admin_', 'adm_', 'super_')):
+            return 'Administrador'
+        
+        # Método 4: Por ID (primer usuario suele ser admin)
+        if user['id'] == 1:
+            return 'Administrador'
+        
+        # Por defecto, es empleado
+        return 'Empleado'
+        
+    except Exception as e:
+        print(f"Error en determine_user_role: {e}")
+        return 'Empleado'  # Por defecto seguro
+
+def get_email_by_username(username):
+    """Obtener email de usuario"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT correo FROM usuarios WHERE usuario = ?", (username,))
+        result = cursor.fetchone()
+        return result['correo'] if result else None
+    except Exception as e:
+        print(f"Error buscando email: {e}")
+        return None
+    finally:
+        conn.close()
+
+def update_user_password(username, new_password):
+    """Actualizar contraseña de usuario"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        hashed_password = hashlib.sha256(new_password.encode()).hexdigest()
+        cursor.execute(
+            "UPDATE usuarios SET contraseña = ? WHERE usuario = ?",
+            (hashed_password, username)
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error updating password: {e}")
         return False
     finally:
         conn.close()
