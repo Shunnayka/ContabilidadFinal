@@ -14,7 +14,8 @@ def create_tables():
         contraseña TEXT NOT NULL,
         cargo TEXT NOT NULL,
         correo TEXT NOT NULL,
-        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        admin INTEGER DEFAULT 0
     )
     ''')
     

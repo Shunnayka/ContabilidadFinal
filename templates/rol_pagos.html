@@ -72,7 +72,13 @@
                         <button class="btn btn-sm btn-info" onclick="viewRolDetails({{ rol.id }})">Ver</button>
                         <button class="btn btn-sm btn-warning" onclick="editRol({{ rol.id }})">Editar</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteRol({{ rol.id }})">Eliminar</button>
-                        <button class="btn btn-sm btn-secondary" onclick="exportRolPDF({{ rol.id }})">PDF</button>
+                        <button onclick="exportRolPDF({{rol.id}})" class="btn btn-sm btn-info" title="PDF Detallado">
+                            <i class="fas fa-file-pdf"></i> PDF Detallado
+                        </button>
+                        <button onclick="exportRolPDFSimple({{rol.id}})" class="btn btn-sm btn-secondary"
+                            title="PDF Simple">
+                            <i class="fas fa-file-alt"></i> PDF Simple
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -87,7 +93,7 @@
     <div class="modal-content large-modal">
         <span class="close" onclick="closeModal('newRolModal')">&times;</span>
         <h3>Nuevo Rol de Pagos</h3>
-        
+
         <form id="newRolForm" method="POST" action="{{ url_for('crear_rol') }}">
             <div class="form-section">
                 <h4>Fecha y Empleado</h4>
@@ -96,30 +102,30 @@
                         <label for="dia">Día:</label>
                         <select id="dia" name="dia" required>
                             {% for dia in range(1, 32) %}
-                            <option value="{{ dia }}" {{ 'selected' if dia == current_day }}>{{ dia }}</option>
+                            <option value="{{ dia }}" {{ 'selected' if dia==current_day }}>{{ dia }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="mes_nuevo">Mes:</label>
                         <select id="mes_nuevo" name="mes" required>
                             {% for mes in range(1, 13) %}
-                            <option value="{{ mes }}" {{ 'selected' if mes == current_month }}>{{ mes }}</option>
+                            <option value="{{ mes }}" {{ 'selected' if mes==current_month }}>{{ mes }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="ano_nuevo">Año:</label>
                         <select id="ano_nuevo" name="ano" required>
                             {% for ano in range(2020, 2031) %}
-                            <option value="{{ ano }}" {{ 'selected' if ano == current_year }}>{{ ano }}</option>
+                            <option value="{{ ano }}" {{ 'selected' if ano==current_year }}>{{ ano }}</option>
                             {% endfor %}
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="empleado_id">Empleado:</label>
                     <select id="empleado_id" name="empleado_id" required onchange="loadEmpleadoData()">
@@ -129,7 +135,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                
+
                 <div id="empleadoInfo" class="empleado-info" style="display: none;">
                     <div class="info-card">
                         <h5>Información del Empleado</h5>
@@ -139,7 +145,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-section">
                 <h4>Datos Básicos</h4>
                 <div class="form-row">
@@ -147,37 +153,37 @@
                         <label for="sueldo">Sueldo Base ($):</label>
                         <input type="number" id="sueldo" name="sueldo" step="0.01" min="0" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="dias_trabajo">Días Trabajados:</label>
                         <input type="number" id="dias_trabajo" name="dias_trabajo" min="0" max="31" value="30" required>
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="bonificacion">Bonificación ($):</label>
                         <input type="number" id="bonificacion" name="bonificacion" step="0.01" min="0" value="0.00">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="transporte">Transporte ($):</label>
                         <input type="number" id="transporte" name="transporte" step="0.01" min="0" value="0.00">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="alimentacion">Alimentación ($):</label>
                         <input type="number" id="alimentacion" name="alimentacion" step="0.01" min="0" value="0.00">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="num_horas_extras">Horas Extras:</label>
                         <input type="number" id="num_horas_extras" name="num_horas_extras" min="0" value="0">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="tipo_horas_extras">Tipo Horas Extras:</label>
@@ -186,14 +192,14 @@
                             <option value="Extraordinarias">Extraordinarias</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="otros_ingresos">Otros Ingresos ($):</label>
                         <input type="number" id="otros_ingresos" name="otros_ingresos" step="0.01" min="0" value="0.00">
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-section">
                 <h4>Configuraciones</h4>
                 <div class="form-row">
@@ -204,7 +210,7 @@
                             <option value="Anual">Anual</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="decimo_cuarto_cobro">Décimo 4to Cobro:</label>
                         <select id="decimo_cuarto_cobro" name="decimo_cuarto_cobro">
@@ -214,7 +220,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-section">
                 <h4>Descuentos</h4>
                 <div class="form-row">
@@ -222,26 +228,26 @@
                         <label for="prestamos_iess">Préstamos IESS ($):</label>
                         <input type="number" id="prestamos_iess" name="prestamos_iess" step="0.01" min="0" value="0.00">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="impuesto_renta">Impuesto Renta ($):</label>
                         <input type="number" id="impuesto_renta" name="impuesto_renta" step="0.01" min="0" value="0.00">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="seguro_privado">Seguro Privado ($):</label>
                         <input type="number" id="seguro_privado" name="seguro_privado" step="0.01" min="0" value="0.00">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="comisariato">Comisariato ($):</label>
                         <input type="number" id="comisariato" name="comisariato" step="0.01" min="0" value="0.00">
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" onclick="calculateTotals()">Calcular Totales</button>
                 <button type="submit" class="btn btn-primary">Guardar Rol</button>
@@ -256,10 +262,10 @@
     <div class="modal-content large-modal">
         <span class="close" onclick="closeModal('editRolModal')">&times;</span>
         <h3>Editar Rol de Pagos</h3>
-        
+
         <form id="editRolForm" method="POST" action="{{ url_for('actualizar_rol') }}">
             <input type="hidden" id="edit_rol_id" name="rol_id">
-            
+
             <div class="form-section">
                 <h4>Fecha y Empleado</h4>
                 <div class="form-row">
@@ -271,7 +277,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_mes">Mes:</label>
                         <select id="edit_mes" name="mes" required>
@@ -280,7 +286,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_ano">Año:</label>
                         <select id="edit_ano" name="ano" required>
@@ -290,7 +296,7 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="edit_empleado_id">Empleado:</label>
                     <select id="edit_empleado_id" name="empleado_id" required onchange="loadEditEmpleadoData()">
@@ -300,7 +306,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                
+
                 <div id="editEmpleadoInfo" class="empleado-info" style="display: none;">
                     <div class="info-card">
                         <h5>Información del Empleado</h5>
@@ -310,7 +316,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-section">
                 <h4>Datos Básicos</h4>
                 <div class="form-row">
@@ -318,37 +324,37 @@
                         <label for="edit_sueldo">Sueldo Base ($):</label>
                         <input type="number" id="edit_sueldo" name="sueldo" step="0.01" min="0" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_dias_trabajo">Días Trabajados:</label>
                         <input type="number" id="edit_dias_trabajo" name="dias_trabajo" min="0" max="31" required>
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit_bonificacion">Bonificación ($):</label>
                         <input type="number" id="edit_bonificacion" name="bonificacion" step="0.01" min="0">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_transporte">Transporte ($):</label>
                         <input type="number" id="edit_transporte" name="transporte" step="0.01" min="0">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit_alimentacion">Alimentación ($):</label>
                         <input type="number" id="edit_alimentacion" name="alimentacion" step="0.01" min="0">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_num_horas_extras">Horas Extras:</label>
                         <input type="number" id="edit_num_horas_extras" name="num_horas_extras" min="0">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit_tipo_horas_extras">Tipo Horas Extras:</label>
@@ -357,14 +363,14 @@
                             <option value="Extraordinarias">Extraordinarias</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_otros_ingresos">Otros Ingresos ($):</label>
                         <input type="number" id="edit_otros_ingresos" name="otros_ingresos" step="0.01" min="0">
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-section">
                 <h4>Configuraciones</h4>
                 <div class="form-row">
@@ -375,7 +381,7 @@
                             <option value="Anual">Anual</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_decimo_cuarto_cobro">Décimo 4to Cobro:</label>
                         <select id="edit_decimo_cuarto_cobro" name="decimo_cuarto_cobro">
@@ -385,7 +391,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-section">
                 <h4>Descuentos</h4>
                 <div class="form-row">
@@ -393,28 +399,29 @@
                         <label for="edit_prestamos_iess">Préstamos IESS ($):</label>
                         <input type="number" id="edit_prestamos_iess" name="prestamos_iess" step="0.01" min="0">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_impuesto_renta">Impuesto Renta ($):</label>
                         <input type="number" id="edit_impuesto_renta" name="impuesto_renta" step="0.01" min="0">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="edit_seguro_privado">Seguro Privado ($):</label>
                         <input type="number" id="edit_seguro_privado" name="seguro_privado" step="0.01" min="0">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="edit_comisariato">Comisariato ($):</label>
                         <input type="number" id="edit_comisariato" name="comisariato" step="0.01" min="0">
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-buttons">
-                <button type="button" class="btn btn-secondary" onclick="calculateEditTotals()">Calcular Totales</button>
+                <button type="button" class="btn btn-secondary" onclick="calculateEditTotals()">Calcular
+                    Totales</button>
                 <button type="submit" class="btn btn-primary">Actualizar Rol</button>
                 <button type="button" class="btn btn-danger" onclick="closeModal('editRolModal')">Cancelar</button>
             </div>

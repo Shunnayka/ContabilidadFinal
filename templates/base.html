@@ -1,14 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contalogic - Sistema Contable</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
-     <!-- CSS específico de cada página -->
-            {% block css_files %}{% endblock %}
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- CSS específico de cada página -->
+    {% block css_files %}{% endblock %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
+
 <body>
     <div class="container">
         <!-- Sidebar -->
@@ -17,47 +23,103 @@
                 <h1>Contalogic</h1>
                 <p>Corporación Alfa</p>
             </div>
-            
+
             <div class="separator"></div>
-            
+
             <nav class="menu">
-                <a href="{{ url_for('home') }}" class="menu-item">Inicio</a>
-                <a href="{{ url_for('empleados') }}" class="menu-item">Registro de Empleados</a>
-                <a href="{{ url_for('rol_pagos') }}" class="menu-item">Rol de Pagos</a>
-                <a href="{{ url_for('contabilidad') }}" class="menu-item">Contabilidad General</a>
-                
-                {% if session.user_role == 'Administrador' %}
-                <a href="{{ url_for('usuarios') }}" class="menu-item">Administración de Usuarios</a>
-                {% endif %}
+                <ul class="menu-list">
+                    <li class="menu-item">
+                        <a href="{{ url_for('home') }}" class="menu-link">
+                            <i class="fas fa-home"></i>
+                            Inicio
+                        </a>
+                    </li>
+
+                    <!-- Dropdown Nómina -->
+                    <li class="menu-item menu-dropdown">
+                        <a href="#" class="menu-link dropdown-toggle">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            Nómina
+                            <i class="dropdown-arrow fas fa-chevron-down"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-item">
+                                <a href="{{ url_for('empleados') }}" class="dropdown-link">
+                                    <i class="fas fa-users"></i>
+                                    Registro de Empleados
+                                </a>
+                            </li>
+                            <li class="dropdown-item">
+                                <a href="{{ url_for('rol_pagos') }}" class="dropdown-link">
+                                    <i class="fas fa-money-check"></i>
+                                    Rol de Pagos
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <!-- Facturación -->
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">
+                            <i class="fas fa-receipt"></i>
+                            Facturación
+                        </a>
+                    </li>
+
+                    <!-- Inventario -->
+                    <li class="menu-item">
+                        <a href="#" class="menu-link">
+                            <i class="fas fa-boxes"></i>
+                            Inventario
+                        </a>
+                    </li>
+
+                    <li class="menu-item">
+                        <a href="{{ url_for('contabilidad') }}" class="menu-link">
+                            <i class="fas fa-chart-line"></i>
+                            Contabilidad General
+                        </a>
+                    </li>
+
+                    {% if session.user_role == 'Administrador' %}
+                    <li class="menu-item">
+                        <a href="{{ url_for('usuarios') }}" class="menu-link">
+                            <i class="fas fa-user-cog"></i>
+                            Administración de Usuarios
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
             </nav>
-            
+
             <div class="separator"></div>
-            
+
             <div class="user-info">
-                <p>Usuario: {{ session.username }}</p>
-                <p>Rol: {{ session.user_role }}</p>
+                <p><strong>Usuario:</strong> {{ session.username }}</p>
+                <p><strong>Rol:</strong> {{ session.user_role }}</p>
                 <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
             </div>
         </div>
-        
+
         <!-- Contenido principal -->
         <div class="main-content">
             <!-- Mensajes flash -->
             {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for category, message in messages %}
-                            <div class="flash {{ category }}">{{ message }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% endwith %}
-            
+
             <!-- Contenido específico de cada página -->
             {% block content %}{% endblock %}
         </div>
     </div>
-    
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
+
 </html>

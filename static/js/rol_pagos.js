@@ -408,12 +408,465 @@ function deleteRol(rolId) {
     openModal('deleteConfirmModal');
 }
 
-// Exportar a PDF
-function exportRolPDF(rolId) {
-    // En una implementación real, esto abriría una nueva ventana o descargaría el PDF
-    alert(`Generando PDF para el rol ${rolId}...\n\nEn un sistema real, se descargaría el reporte en formato PDF.`);
+// Exportar rol individual a PDF - Implementación Real
+async function exportRolPDF(rolId) {
+    try {
+        // Mostrar indicador de carga
+        showLoading('Generando PDF del rol...');
+        
+        // Obtener datos del rol
+        const rolData = await getRolData(rolId);
+        if (!rolData) {
+            throw new Error('No se pudieron obtener los datos del rol');
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Configuración del documento
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        
+        // Logo y cabecera
+        await addHeader(doc, pageWidth, margin);
+        
+        // Información del rol
+        addRolInfo(doc, rolData, margin);
+        
+        // Detalles del empleado
+        addEmployeeInfo(doc, rolData, margin);
+        
+        // Tabla de ingresos
+        const ingresosY = addIncomeTable(doc, rolData, margin);
+        
+        // Tabla de egresos
+        const egresosY = addExpenseTable(doc, rolData, ingresosY + 10);
+        
+        // Resumen final
+        addSummary(doc, rolData, egresosY + 10, pageWidth);
+        
+        // Pie de página
+        addFooter(doc, pageWidth);
+        
+        // Generar nombre del archivo
+        const fileName = `rol_pago_${rolData.empleado_nombre.replace(/\s+/g, '_')}_${rolData.mes}_${rolData.ano}.pdf`;
+        
+        // Guardar PDF
+        doc.save(fileName);
+        
+        // Ocultar loading
+        hideLoading();
+        
+        // Mostrar confirmación
+        showSuccess('PDF del rol generado exitosamente');
+        
+    } catch (error) {
+        console.error('Error generando PDF del rol:', error);
+        hideLoading();
+        showError('Error al generar el PDF: ' + error.message);
+    }
+}
+
+// Obtener datos del rol desde el servidor
+async function getRolData(rolId) {
+    try {
+        const response = await fetch(`/rol_pagos/detalles/${rolId}`);
+        if (!response.ok) {
+            throw new Error('Error al obtener datos del rol');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Error:', error);
+        // Si falla la petición, intentar obtener datos de la tabla
+        return getRolDataFromTable(rolId);
+    }
+}
+
+// Fallback: obtener datos de la tabla HTML
+function getRolDataFromTable(rolId) {
+    const row = document.querySelector(`tr[data-rol-id="${rolId}"]`);
+    if (!row) return null;
     
-    // window.open(`/rol_pagos/exportar/${rolId}`, '_blank');
+    const cells = row.cells;
+    return {
+        empleado_nombre: cells[1]?.textContent || '',
+        mes: cells[2]?.textContent || '',
+        ano: cells[3]?.textContent || '',
+        total_ingresos: parseFloat(cells[4]?.textContent?.replace(/[^\d.-]/g, '') || 0),
+        total_egresos: parseFloat(cells[5]?.textContent?.replace(/[^\d.-]/g, '') || 0),
+        liquido_pagar: parseFloat(cells[6]?.textContent?.replace(/[^\d.-]/g, '') || 0)
+    };
+}
+
+// Agregar cabecera con logo
+async function addHeader(doc, pageWidth, margin) {
+    // Título principal
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ROL DE PAGOS', pageWidth / 2, margin, { align: 'center' });
+    
+    // Información de la empresa
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('CORPORACIÓN ALFA', pageWidth / 2, margin + 8, { align: 'center' });
+    doc.text('Sistema Contalogic', pageWidth / 2, margin + 13, { align: 'center' });
+    
+    // Línea separadora
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, margin + 18, pageWidth - margin, margin + 18);
+}
+
+// Agregar información del rol
+function addRolInfo(doc, rolData, margin) {
+    const startY = margin + 30;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INFORMACIÓN DEL PERÍODO', margin, startY);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    const rolInfo = [
+        `Mes: ${rolData.mes}`,
+        `Año: ${rolData.ano}`,
+        `Día de pago: ${rolData.dia || 15}`,
+        `Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`
+    ];
+    
+    rolInfo.forEach((info, index) => {
+        doc.text(info, margin, startY + 10 + (index * 5));
+    });
+    
+    return startY + 10 + (rolInfo.length * 5);
+}
+
+// Agregar información del empleado
+function addEmployeeInfo(doc, rolData, margin) {
+    const startY = margin + 65;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATOS DEL EMPLEADO', margin, startY);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    const employeeInfo = [
+        `Nombre: ${rolData.empleado_nombre || 'N/A'}`,
+        `Cédula: ${rolData.empleado_cedula || 'N/A'}`,
+        `Cargo: ${rolData.empleado_cargo || 'N/A'}`,
+        `Días trabajados: ${rolData.dias_trabajo || 30}`
+    ];
+    
+    employeeInfo.forEach((info, index) => {
+        doc.text(info, margin, startY + 10 + (index * 5));
+    });
+    
+    return startY + 10 + (employeeInfo.length * 5);
+}
+
+// Agregar tabla de ingresos
+function addIncomeTable(doc, rolData, startY) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('INGRESOS', margin, startY);
+    
+    // Configurar tabla de ingresos
+    const ingresos = [
+        { concepto: 'Sueldo básico', valor: rolData.sueldo || 0 },
+        { concepto: 'Bonificación', valor: rolData.bonificacion || 0 },
+        { concepto: 'Transporte', valor: rolData.transporte || 0 },
+        { concepto: 'Alimentación', valor: rolData.alimentacion || 0 },
+        { concepto: 'Décimo tercero', valor: rolData.decimo_tercero || 0 },
+        { concepto: 'Décimo cuarto', valor: rolData.decimo_cuarto || 0 },
+        { concepto: 'Horas extras', valor: rolData.valor_horas_extras || 0 },
+        { concepto: 'Otros ingresos', valor: rolData.otros_ingresos || 0 }
+    ];
+    
+    let currentY = startY + 10;
+    
+    // Encabezado de la tabla
+    doc.setFillColor(44, 62, 80);
+    doc.setTextColor(255);
+    doc.rect(margin, currentY, pageWidth - (2 * margin), 8, 'F');
+    doc.text('CONCEPTO', margin + 2, currentY + 6);
+    doc.text('VALOR', pageWidth - margin - 25, currentY + 6);
+    
+    currentY += 8;
+    
+    // Filas de ingresos
+    doc.setTextColor(0);
+    let totalIngresos = 0;
+    
+    ingresos.forEach((item, index) => {
+        if (item.valor > 0) {
+            // Fondo alternado
+            if (index % 2 === 0) {
+                doc.setFillColor(245, 245, 245);
+                doc.rect(margin, currentY, pageWidth - (2 * margin), 8, 'F');
+            }
+            
+            doc.text(item.concepto, margin + 2, currentY + 6);
+            doc.text(formatCurrency(item.valor), pageWidth - margin - 25, currentY + 6, { align: 'right' });
+            
+            totalIngresos += item.valor;
+            currentY += 8;
+        }
+    });
+    
+    // Total ingresos
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, currentY, pageWidth - (2 * margin), 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL INGRESOS', margin + 2, currentY + 6);
+    doc.text(formatCurrency(totalIngresos), pageWidth - margin - 25, currentY + 6, { align: 'right' });
+    
+    return currentY + 8;
+}
+
+// Agregar tabla de egresos
+function addExpenseTable(doc, rolData, startY) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    
+    // Verificar si hay espacio suficiente
+    if (startY > 200) {
+        doc.addPage();
+        startY = margin;
+    }
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('EGRESOS', margin, startY);
+    
+    // Configurar tabla de egresos
+    const egresos = [
+        { concepto: 'Aporte IESS', valor: rolData.iess || 0 },
+        { concepto: 'Préstamos IESS', valor: rolData.prestamos_iess || 0 },
+        { concepto: 'Impuesto a la renta', valor: rolData.impuesto_renta || 0 },
+        { concepto: 'Seguro privado', valor: rolData.seguro_privado || 0 },
+        { concepto: 'Comisariato', valor: rolData.comisariato || 0 }
+    ];
+    
+    let currentY = startY + 10;
+    
+    // Encabezado de la tabla
+    doc.setFillColor(44, 62, 80);
+    doc.setTextColor(255);
+    doc.rect(margin, currentY, pageWidth - (2 * margin), 8, 'F');
+    doc.text('CONCEPTO', margin + 2, currentY + 6);
+    doc.text('VALOR', pageWidth - margin - 25, currentY + 6);
+    
+    currentY += 8;
+    
+    // Filas de egresos
+    doc.setTextColor(0);
+    let totalEgresos = 0;
+    
+    egresos.forEach((item, index) => {
+        if (item.valor > 0) {
+            // Fondo alternado
+            if (index % 2 === 0) {
+                doc.setFillColor(245, 245, 245);
+                doc.rect(margin, currentY, pageWidth - (2 * margin), 8, 'F');
+            }
+            
+            doc.text(item.concepto, margin + 2, currentY + 6);
+            doc.text(formatCurrency(item.valor), pageWidth - margin - 25, currentY + 6, { align: 'right' });
+            
+            totalEgresos += item.valor;
+            currentY += 8;
+        }
+    });
+    
+    // Total egresos
+    doc.setFillColor(240, 240, 240);
+    doc.rect(margin, currentY, pageWidth - (2 * margin), 8, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL EGRESOS', margin + 2, currentY + 6);
+    doc.text(formatCurrency(totalEgresos), pageWidth - margin - 25, currentY + 6, { align: 'right' });
+    
+    return currentY + 8;
+}
+
+// Agregar resumen final
+function addSummary(doc, rolData, startY, pageWidth) {
+    const margin = 15;
+    
+    // Verificar si hay espacio suficiente
+    if (startY > 250) {
+        doc.addPage();
+        startY = margin;
+    }
+    
+    const liquidoPagar = rolData.liquido_pagar || (rolData.total_ingresos - rolData.total_egresos);
+    
+    // Caja de resumen
+    doc.setFillColor(44, 62, 80);
+    doc.rect(margin, startY, pageWidth - (2 * margin), 25, 'F');
+    
+    doc.setTextColor(255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('LIQUIDO A PAGAR', pageWidth / 2, startY + 10, { align: 'center' });
+    
+    doc.setFontSize(16);
+    doc.text(formatCurrency(liquidoPagar), pageWidth / 2, startY + 20, { align: 'center' });
+}
+
+// Agregar pie de página
+function addFooter(doc, pageWidth) {
+    const pageHeight = doc.internal.pageSize.getHeight();
+    
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.setFont('helvetica', 'normal');
+    
+    // Línea separadora
+    doc.setDrawColor(200, 200, 200);
+    doc.line(15, pageHeight - 20, pageWidth - 15, pageHeight - 20);
+    
+    // Texto del pie
+    doc.text('Documento generado automáticamente por el Sistema Contalogic', pageWidth / 2, pageHeight - 15, { align: 'center' });
+    doc.text('Corporación Alfa - Todos los derechos reservados', pageWidth / 2, pageHeight - 10, { align: 'center' });
+}
+
+// Formatear moneda
+function formatCurrency(amount) {
+    if (isNaN(amount)) return '$0.00';
+    return '$' + amount.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+}
+
+// Función SIMPLE alternativa si falla la compleja
+async function exportRolPDFSimple(rolId) {
+    try {
+        showLoading('Generando PDF...');
+        
+        const rolData = await getRolData(rolId);
+        if (!rolData) {
+            throw new Error('No se encontraron datos del rol');
+        }
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Contenido simple pero efectivo
+        doc.setFontSize(16);
+        doc.text('ROL DE PAGOS - CORPORACIÓN ALFA', 20, 20);
+        
+        doc.setFontSize(10);
+        doc.text(`Empleado: ${rolData.empleado_nombre || 'N/A'}`, 20, 35);
+        doc.text(`Período: ${rolData.mes}/${rolData.ano}`, 20, 42);
+        doc.text(`Generado: ${new Date().toLocaleDateString()}`, 20, 49);
+        
+        doc.setFontSize(12);
+        doc.text('RESUMEN DE PAGO:', 20, 65);
+        
+        doc.setFontSize(10);
+        doc.text(`Total Ingresos: ${formatCurrency(rolData.total_ingresos)}`, 20, 75);
+        doc.text(`Total Egresos: ${formatCurrency(rolData.total_egresos)}`, 20, 82);
+        
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`LÍQUIDO A PAGAR: ${formatCurrency(rolData.liquido_pagar)}`, 20, 95);
+        
+        const fileName = `rol_pago_${rolData.empleado_nombre?.replace(/\s+/g, '_') || 'empleado'}_${rolData.mes}_${rolData.ano}.pdf`;
+        doc.save(fileName);
+        
+        hideLoading();
+        showSuccess('PDF generado exitosamente');
+        
+    } catch (error) {
+        console.error('Error:', error);
+        hideLoading();
+        showError('Error al generar PDF: ' + error.message);
+    }
+}
+
+// Funciones de UI (las mismas que antes)
+function showLoading(message) {
+    let loading = document.getElementById('pdf-loading');
+    if (!loading) {
+        loading = document.createElement('div');
+        loading.id = 'pdf-loading';
+        loading.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            font-family: Arial, sans-serif;
+        `;
+        document.body.appendChild(loading);
+    }
+    
+    loading.innerHTML = `
+        <div style="text-align: center;">
+            <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px;"></div>
+            <p>${message}</p>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    loading.style.display = 'flex';
+}
+
+function hideLoading() {
+    const loading = document.getElementById('pdf-loading');
+    if (loading) {
+        loading.style.display = 'none';
+    }
+}
+
+function showSuccess(message) {
+    showNotification(message, 'success');
+}
+
+function showError(message) {
+    showNotification(message, 'error');
+}
+
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-family: Arial, sans-serif;
+        z-index: 10000;
+        transition: all 0.3s ease;
+        ${type === 'success' ? 'background: #27ae60;' : 'background: #e74c3c;'}
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
 }
 
 // Funciones auxiliares para modales

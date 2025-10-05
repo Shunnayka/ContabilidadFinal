@@ -11,7 +11,7 @@ import threading
 from database import (
     add_employee, create_tables, delete_employee, get_all_employees, 
     get_db_connection, get_employee_by_id, get_user_by_username, 
-    verify_password, determine_user_role, create_user_with_auto_role, 
+    verify_password, create_user_with_auto_role, 
     get_user_count, update_user_password, get_email_by_username
 )
 from functools import wraps
@@ -103,6 +103,21 @@ def login():
             flash('Error interno del servidor. Por favor, intenta nuevamente.', 'error')
     
     return render_template('login.html')
+
+def determine_user_role(user):
+    """
+    Determina automáticamente el rol del usuario basado en:
+    - Campos específicos en la base de datos
+    - Lista de usuarios administradores
+    - Patrones en el username
+    - Permisos específicos
+    """
+
+    # Método 1: Si tienes un campo 'admin' en la base de datos
+    if 'admin' in user.keys() and user['admin']:
+        return 'Administrador'
+    # Por defecto, es empleado
+    return 'Empleado'
 
 # Decorador para requerir inicio de sesión
 def login_required(f):
