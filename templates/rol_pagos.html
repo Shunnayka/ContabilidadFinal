@@ -42,6 +42,9 @@
         </div>
 
         <button class="btn btn-secondary" onclick="clearFilters()">Limpiar Filtros</button>
+        <button class="btn btn-pdf" onclick="generarPDF()">
+            <i class="fas fa-file-pdf"></i> Generar PDF
+        </button>
     </div>
 
     <div class="table-container">
@@ -69,16 +72,8 @@
                     <td class="currency">${{ "%.2f"|format(rol.total_egresos or 0) }}</td>
                     <td class="currency highlight">${{ "%.2f"|format(rol.liquido_pagar or 0) }}</td>
                     <td class="actions">
-                        <button class="btn btn-sm btn-info" onclick="viewRolDetails({{ rol.id }})">Ver</button>
                         <button class="btn btn-sm btn-warning" onclick="editRol({{ rol.id }})">Editar</button>
                         <button class="btn btn-sm btn-danger" onclick="deleteRol({{ rol.id }})">Eliminar</button>
-                        <button onclick="exportRolPDF({{rol.id}})" class="btn btn-sm btn-info" title="PDF Detallado">
-                            <i class="fas fa-file-pdf"></i> PDF Detallado
-                        </button>
-                        <button onclick="exportRolPDFSimple({{rol.id}})" class="btn btn-sm btn-secondary"
-                            title="PDF Simple">
-                            <i class="fas fa-file-alt"></i> PDF Simple
-                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -86,7 +81,6 @@
         </table>
     </div>
 </div>
-
 
 <!-- Modal para nuevo rol de pagos -->
 <div id="newRolModal" class="modal">
@@ -245,6 +239,63 @@
                         <label for="comisariato">Comisariato ($):</label>
                         <input type="number" id="comisariato" name="comisariato" step="0.01" min="0" value="0.00">
                     </div>
+                </div>
+            </div>
+
+            <!-- Agregar esta sección después de la sección de Descuentos en NEW ROL MODAL -->
+            <div class="form-section">
+                <h4>Resultados Calculados</h4>
+                <div class="results-container">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Antigüedad</td>
+                                <td id="antiguedad">0 días</td>
+                            </tr>
+                            <tr>
+                                <td>Décimo Cuarto</td>
+                                <td id="decimoCuarto">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Décimo Tercero</td>
+                                <td id="decimoTercero">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Fondos Reserva</td>
+                                <td id="fondosReserva">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Valor Horas Extras</td>
+                                <td id="valorHorasExtras">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Total Ingresos</td>
+                                <td id="totalIngresos">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>IESS (9.45%)</td>
+                                <td id="iess">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Aporte Patronal</td>
+                                <td id="aportePatronal">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td>Total Egresos</td>
+                                <td id="totalEgresos">$0.00</td>
+                            </tr>
+                            <tr class="highlight">
+                                <td><strong>LÍQUIDO A PAGAR</strong></td>
+                                <td id="liquidoPagar"><strong>$0.00</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -419,10 +470,64 @@
                 </div>
             </div>
 
+            <!-- Agregar esta sección después de la sección de Descuentos -->
+            <div class="form-section">
+                <h4>Resultados Calculados</h4>
+                <div class="results-container">
+                    <!-- En el modal de edición (editRolModal) -->
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <td><strong>Antigüedad:</strong></td>
+                                <td id="edit_antiguedad">0 días</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Décimo Cuarto:</strong></td>
+                                <td id="edit_decimoCuarto">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Décimo Tercero:</strong></td>
+                                <td id="edit_decimoTercero">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Fondos Reserva:</strong></td>
+                                <td id="edit_fondosReserva">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Valor Horas Extras:</strong></td>
+                                <td id="edit_valorHorasExtras">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Ingresos:</strong></td>
+                                <td id="edit_totalIngresos">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>IESS:</strong></td>
+                                <td id="edit_iess">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Aporte Patronal:</strong></td>
+                                <td id="edit_aportePatronal">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Egresos:</strong></td>
+                                <td id="edit_totalEgresos">$0.00</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Líquido a Pagar:</strong></td>
+                                <td id="edit_liquidoPagar">$0.00</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+
+            <!-- En el modal de edición -->
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" onclick="calculateEditTotals()">Calcular
                     Totales</button>
-                <button type="submit" class="btn btn-primary">Actualizar Rol</button>
+                <button type="button" class="btn btn-primary" onclick="updateRol()">Actualizar Rol</button>
                 <button type="button" class="btn btn-danger" onclick="closeModal('editRolModal')">Cancelar</button>
             </div>
         </form>

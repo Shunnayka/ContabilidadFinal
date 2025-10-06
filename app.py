@@ -10,7 +10,7 @@ from email.mime.multipart import MIMEMultipart
 import threading
 from database import (
     add_employee, create_tables, delete_employee, get_all_employees, 
-    get_db_connection, get_employee_by_id, get_user_by_username, 
+    get_db_connection, get_employee_by_id, get_user_by_username, update_employee, 
     verify_password, create_user_with_auto_role, 
     get_user_count, update_user_password, get_email_by_username
 )
@@ -268,23 +268,34 @@ def empleados():
     employees = get_all_employees()
     return render_template('empleados.html', employees=employees)
 
-@app.route('/empleados/datos/<int:id>')
-@login_required
-def datos_empleado(id):
-    employee = get_employee_by_id(id)
-    if employee:
-        return {
-            'id': employee['id'],
-            'nombres': employee['nombres'],
-            'apellidos': employee['apellidos'],
-            'cedula': employee['cedula'],
-            'correo': employee['correo'],
-            'cargo': employee['cargo'],
-            'salario': employee['salario'],
-            'fecha_ingreso': employee['fecha_ingreso'],
-            'activo': bool(employee['activo'])
-        }
-    return {'error': 'Empleado no encontrado'}, 404
+@app.route('/empleados/datos/<int:empleado_id>')
+def obtener_datos_empleado(empleado_id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, nombres, apellidos, cedula, fecha_ingreso, salario 
+            FROM empleados WHERE id = ?
+        """, (empleado_id,))
+        
+        empleado = cursor.fetchone()
+        conn.close()
+        
+        if empleado:
+            return jsonify({
+                'id': empleado['id'],
+                'nombres': empleado['nombres'],
+                'apellidos': empleado['apellidos'],
+                'cedula': empleado['cedula'],
+                'fecha_ingreso': empleado['fecha_ingreso'],
+                'salario': empleado['salario']
+            })
+        else:
+            return jsonify({'error': 'Empleado no encontrado'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/empleados/agregar', methods=['POST'])
@@ -469,11 +480,17 @@ def crear_rol():
             return redirect(url_for('rol_pagos'))
 
 @app.route('/actualizar_rol', methods=['POST'])
-@login_required
 def actualizar_rol():
+    # Obtener el ID del formulario
+    id = request.form.get('edit_rol_id')
+    if not id:
+        return jsonify({"error": "ID no proporcionado"}), 400
+    
+    id = int(id)
+
     try:
         # Obtener datos del formulario
-        rol_id = request.form.get('rol_id')
+        rol_id = id
         empleado_id = request.form.get('empleado_id')
         dia = request.form.get('dia')
         mes = request.form.get('mes')
@@ -542,93 +559,77 @@ def actualizar_rol():
         
         conn.commit()
         conn.close()
+        print ('hello2')
         
         flash('Rol de pagos actualizado correctamente', 'success')
         return redirect(url_for('rol_pagos'))
         
     except Exception as e:
+        print ('hello')
         print(f"Error al actualizar rol: {e}")
         import traceback
         traceback.print_exc()
         flash('Error al actualizar el rol de pagos', 'error')
         return redirect(url_for('rol_pagos'))
 
-@app.route('/rol_pagos/detalles/<int:rol_id>')
-@login_required
-def detalles_rol(rol_id):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        print(f"Buscando detalles del rol ID: {rol_id}")
+@app.route('/rol_pagos/detalles/<int:rol_id>', methods=['GET'])
+def obtener_detalles_rol(rol_id):
+    try:    
+        conn = get_db_connection()
+        cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT rp.*, e.nombres || ' ' || e.apellidos as empleado_nombre
-            FROM rol_pagos rp
-            JOIN empleados e ON rp.empleado_id = e.id
-            WHERE rp.id = ?
+            SELECT r.*, e.nombres, e.apellidos, e.cedula, e.fecha_ingreso, e.salario
+            FROM rol_pagos r 
+            JOIN empleados e ON r.empleado_id = e.id 
+            WHERE r.id = ?
         """, (rol_id,))
         
         rol = cursor.fetchone()
+        print(rol)  # Debugging line to check the fetched data
+        conn.close()
         
         if rol:
-            print(f"Rol encontrado: {dict(rol)}")
             return jsonify({
                 'id': rol['id'],
                 'empleado_id': rol['empleado_id'],
-                'empleado_nombre': rol['empleado_nombre'],
                 'dia': rol['dia'],
                 'mes': rol['mes'],
-                'ano': rol['año'],
-                'sueldo': float(rol['sueldo']),
-                'dias_trabajo': float(rol['dias_trabajo'] or 0),
-                'bonificacion': float(rol['bonificacion'] or 0),
-                'transporte': float(rol['transporte'] or 0),
-                'alimentacion': float(rol['alimentacion'] or 0),
-                'num_horas_extras': int(rol['horas_extras'] or 0),
-                'tipo_horas_extras': rol['tipo_horas_extras'] or 'Ordinarias',
-                'valor_horas_extras': float(rol['valor_horas_extras'] or 0),
-                'otros_ingresos': float(rol['otros_ingresos'] or 0),
-                # Estas columnas no existen en tu tabla, así que las ponemos con valores por defecto
-                'decimo_tercero_cobro': 'Mensual',  # Valor por defecto
-                'decimo_cuarto_cobro': 'Mensual',   # Valor por defecto
-                'decimo_tercero': float(rol['decimo_tercero'] or 0),
-                'decimo_cuarto': float(rol['decimo_cuarto'] or 0),
-                'iess': float(rol['iess'] or 0),
-                'prestamos_iess': float(rol['prestamos_iess'] or 0),
-                'impuesto_renta': float(rol['impuesto_renta'] or 0),
-                'seguro_privado': float(rol['seguro_privado'] or 0),
-                'comisariato': float(rol['comisariato'] or 0),
-                'aporte_patronal': float(rol['aporte_patronal'] or 0),
-                'total_ingresos': float(rol['total_ingresos'] or 0),
-                'total_egresos': float(rol['total_egresos'] or 0),
-                'liquido_pagar': float(rol['liquido_pagar'] or 0)
+                'ano': rol['año'],  # Este campo sabemos que existe
+                'sueldo': rol['sueldo'],
+                'dias_trabajo': rol['dias_trabajo'],
+                'bonificacion': rol['bonificacion'] if 'bonificacion' in rol else 0,
+                'transporte': rol['transporte'] if 'transporte' in rol else 0,
+                'alimentacion': rol['alimentacion'] if 'alimentacion' in rol else 0,
+                'horas_extras': rol['horas_extras'] if 'horas_extras' in rol else 0,
+                'tipo_horas_extras': rol['tipo_horas_extras'] if 'tipo_horas_extras' in rol else 'Ordinarias',
+                'otros_ingresos': rol['otros_ingresos'] if 'otros_ingresos' in rol else 0,
+                'prestamos_iess': rol['prestamos_iess'] if 'prestamos_iess' in rol else 0,
+                'impuesto_renta': rol['impuesto_renta'] if 'impuesto_renta' in rol else 0,
+                'seguro_privado': rol['seguro_privado'] if 'seguro_privado' in rol else 0,
+                'comisariato': rol['comisariato'] if 'comisariato' in rol else 0
             })
         else:
-            print("Rol no encontrado")
             return jsonify({'error': 'Rol no encontrado'}), 404
             
     except Exception as e:
-        print(f"Error obteniendo detalles del rol: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Error interno del servidor: {str(e)}'}), 500
-    finally:
-        conn.close()
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 # Agrega esta ruta temporal para verificar la estructura
-@app.route('/debug/tabla_rol_pagos')
-def debug_tabla_rol_pagos():
+@app.route('/debug/rol_pagos')
+def debug_rol_pagos():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Obtener información de la estructura de la tabla
-    cursor.execute("PRAGMA table_info(rol_pagos)")
-    columns = cursor.fetchall()
-    
+    cursor.execute("""
+            SELECT r.*, e.nombres, e.apellidos, e.cedula, e.fecha_ingreso, e.salario
+            FROM rol_pagos r 
+            JOIN empleados e ON r.empleado_id = e.id 
+            WHERE r.id = ?
+        """, (9,))
+    roles = cursor.fetchall()
     conn.close()
-    
-    return jsonify([dict(col) for col in columns])
+    return jsonify([dict(rol) for rol in roles])
 
 @app.route('/rol_pagos/eliminar', methods=['POST'])
 @login_required
