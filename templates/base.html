@@ -5,122 +5,173 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contalogic - Sistema Contable</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- CSS personalizados -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sidebar.css') }}">
+
     <!-- CSS específico de cada página -->
     {% block css_files %}{% endblock %}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body>
-    <div class="container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo-frame">
-                <h1>Contalogic</h1>
-                <p>Corporación Alfa</p>
-            </div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar con Bootstrap -->
+            <div class="col-md-3 col-lg-2 sidebar-bg px-0">
+                <div class="sidebar d-flex flex-column">
+                    <!-- Logo -->
+                    <div class="logo-frame text-center py-4">
+                        <h1 class="h4 mb-1 text-white">Contalogic</h1>
+                        <p class="text-muted mb-0 small">Corporación Alfa</p>
+                    </div>
 
-            <div class="separator"></div>
+                    <div class="separator"></div>
 
-            <nav class="menu">
-                <ul class="menu-list">
-                    <li class="menu-item">
-                        <a href="{{ url_for('home') }}" class="menu-link">
-                            <i class="fas fa-home"></i>
-                            Inicio
-                        </a>
-                    </li>
-
-                    <!-- Dropdown Nómina -->
-                    <li class="menu-item menu-dropdown">
-                        <a href="#" class="menu-link dropdown-toggle">
-                            <i class="fas fa-file-invoice-dollar"></i>
-                            Nómina
-                            <i class="dropdown-arrow fas fa-chevron-down"></i>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li class="dropdown-item">
-                                <a href="{{ url_for('empleados') }}" class="dropdown-link">
-                                    <i class="fas fa-users"></i>
-                                    Registro de Empleados
+                    <!-- Menú de Navegación -->
+                    <nav class="menu flex-grow-1">
+                        <ul class="nav flex-column">
+                            <!-- Inicio -->
+                            <li class="nav-item">
+                                <a href="{{ url_for('home') }}" class="nav-link menu-link">
+                                    <i class="fas fa-home me-2"></i>
+                                    Inicio
                                 </a>
                             </li>
-                            <li class="dropdown-item">
-                                <a href="{{ url_for('rol_pagos') }}" class="dropdown-link">
-                                    <i class="fas fa-money-check"></i>
-                                    Rol de Pagos
+
+                            <!-- Dropdown Nómina -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link menu-link dropdown-toggle" href="#" role="button" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-file-invoice-dollar me-2"></i>
+                                    Nómina
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('empleados') }}">
+                                            <i class="fas fa-users me-2"></i>
+                                            Registro de Empleados
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('rol_pagos') }}">
+                                            <i class="fas fa-money-check me-2"></i>
+                                            Rol de Pagos
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- Facturación -->
+                            <li class="nav-item">
+                                <a href="#" class="nav-link menu-link disabled">
+                                    <i class="fas fa-receipt me-2"></i>
+                                    Facturación
+                                    <span class="badge bg-secondary ms-2">Próximamente</span>
                                 </a>
                             </li>
+
+                            <!-- Dropdown Inventario -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link menu-link dropdown-toggle" href="#" role="button" 
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    Inventario
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('productos') }}">
+                                            <i class="fas fa-box me-2"></i>
+                                            Productos
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('categorias') }}">
+                                            <i class="fas fa-tags me-2"></i>
+                                            Categorías
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('unidades') }}">
+                                            <i class="fas fa-balance-scale me-2"></i>
+                                            Unidades
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- Contabilidad General -->
+                            <li class="nav-item">
+                                <a href="{{ url_for('contabilidad') }}" class="nav-link menu-link">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    Contabilidad General
+                                </a>
+                            </li>
+
+                            <!-- Administración de Usuarios -->
+                            {% if session.user_role == 'Administrador' %}
+                            <li class="nav-item">
+                                <a href="{{ url_for('usuarios') }}" class="nav-link menu-link">
+                                    <i class="fas fa-user-cog me-2"></i>
+                                    Administración de Usuarios
+                                </a>
+                            </li>
+                            {% endif %}
                         </ul>
-                    </li>
+                    </nav>
 
-                    <!-- Facturación -->
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="fas fa-receipt"></i>
-                            Facturación
+                    <div class="separator"></div>
+
+                    <!-- Información del Usuario -->
+                    <div class="user-info p-3">
+                        <p class="mb-1 small">
+                            <strong class="text-white">Usuario:</strong> 
+                            <span class="text-muted">{{ session.username }}</span>
+                        </p>
+                        <p class="mb-2 small">
+                            <strong class="text-white">Rol:</strong> 
+                            <span class="text-muted">{{ session.user_role }}</span>
+                        </p>
+                        <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm w-100">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            Cerrar Sesión
                         </a>
-                    </li>
-
-                    <!-- Inventario -->
-                    <li class="menu-item">
-                        <a href="#" class="menu-link">
-                            <i class="fas fa-boxes"></i>
-                            Inventario
-                        </a>
-                    </li>
-
-                    <li class="menu-item">
-                        <a href="{{ url_for('contabilidad') }}" class="menu-link">
-                            <i class="fas fa-chart-line"></i>
-                            Contabilidad General
-                        </a>
-                    </li>
-
-                    {% if session.user_role == 'Administrador' %}
-                    <li class="menu-item">
-                        <a href="{{ url_for('usuarios') }}" class="menu-link">
-                            <i class="fas fa-user-cog"></i>
-                            Administración de Usuarios
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-
-            <div class="separator"></div>
-
-            <div class="user-info">
-                <p><strong>Usuario:</strong> {{ session.username }}</p>
-                <p><strong>Rol:</strong> {{ session.user_role }}</p>
-                <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Contenido principal -->
-        <div class="main-content">
-            <!-- Mensajes flash -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="flash-messages">
-                {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-                {% endfor %}
+            <!-- Contenido principal -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Mensajes flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-messages mt-3">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+
+                <!-- Contenido específico de cada página -->
+                {% block content %}{% endblock %}
             </div>
-            {% endif %}
-            {% endwith %}
-
-            <!-- Contenido específico de cada página -->
-            {% block content %}{% endblock %}
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Scripts personalizados -->
+    <script src="{{ url_for('static', filename='js/sidebar.js') }}"></script>
 </body>
 
 </html>

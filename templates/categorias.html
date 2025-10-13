@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block css_files %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/categorias.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="categorias-container">
+    <div class="categorias-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-tags me-2"></i>Gestión de Categorías</h1>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#agregarCategoriaModal">
+                <i class="fas fa-plus me-1"></i>Agregar Categoría
+            </button>
+        </div>
+    </div>
+
+    <div class="categorias-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="categorias-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Estado</th>
+                            <th>Fecha Creación</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for categoria in categorias %}
+                        <tr>
+                            <td>{{ categoria.id }}</td>
+                            <td>{{ categoria.nombre }}</td>
+                            <td class="categoria-descripcion">{{ categoria.descripcion or 'Sin descripción' }}</td>
+                            <td>
+                                <span class="categoria-badge bg-{{ 'success' if categoria.activo else 'danger' }}">
+                                    {{ 'Activa' if categoria.activo else 'Inactiva' }}
+                                </span>
+                            </td>
+                            <td>{{ categoria.fecha_creacion[:10] }}</td>
+                            <td>
+                                <div class="categorias-actions">
+                                    <button class="btn btn-warning" 
+                                            onclick="editarCategoria({{ categoria.id }}, '{{ categoria.nombre }}', '{{ categoria.descripcion or '' }}', {{ categoria.activo }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <a href="{{ url_for('eliminar_categoria', id=categoria.id) }}" 
+                                       class="btn btn-danger"
+                                       onclick="return confirm('¿Está seguro de eliminar esta categoría?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Categoría -->
+<<!-- En el modal agregar categoría, agrega placeholders -->
+<div class="modal fade modal-categorias" id="agregarCategoriaModal" tabindex="-1" aria-labelledby="agregarCategoriaModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="agregarCategoriaModalLabel">Agregar Nueva Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('agregar_categoria') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required placeholder="Ej: Materia Prima">
+                    </div>
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="descripcion" name="descripcion" rows="3" placeholder="Descripción opcional de la categoría"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Categoría -->
+<div class="modal fade modal-categorias" id="editarCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Categoría</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formEditarCategoria">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" name="nombre" id="editCatNombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" id="editCatDescripcion" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="activo" id="editCatActivo">
+                        <label class="form-check-label" for="editCatActivo">Activa</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editarCategoria(id, nombre, descripcion, activo) {
+    document.getElementById('editCatNombre').value = nombre;
+    document.getElementById('editCatDescripcion').value = descripcion;
+    document.getElementById('editCatActivo').checked = activo;
+    
+    const form = document.getElementById('formEditarCategoria');
+    form.action = "{{ url_for('editar_categoria', id=0) }}".replace('0', id);
+    
+    new bootstrap.Modal(document.getElementById('editarCategoriaModal')).show();
+}
+</script>
+{% endblock %}

@@ -12,7 +12,11 @@ from database import (
     add_employee, create_tables, delete_employee, get_all_employees, 
     get_db_connection, get_employee_by_id, get_user_by_username, update_employee, 
     verify_password, create_user_with_auto_role, 
-    get_user_count, update_user_password, get_email_by_username
+    get_user_count, update_user_password, get_email_by_username,
+    create_inventory_tables, get_all_unidades, add_unidad, update_unidad, delete_unidad,
+    get_all_categorias, add_categoria, update_categoria, delete_categoria,
+    get_all_productos, add_producto, update_producto, delete_producto,
+    get_producto_by_id, get_productos_bajo_stock
 )
 from functools import wraps
 
@@ -818,8 +822,279 @@ def eliminar_usuario():
             conn.close()
         
         return redirect(url_for('usuarios'))
+    
+# Rutas para Inventario
+@app.route('/inventario')
+@login_required
+def inventario():
+    return redirect(url_for('productos'))
+
+# Rutas para Unidades
+@app.route('/inventario/unidades')
+@login_required
+def unidades():
+    unidades_list = get_all_unidades()
+    return render_template('unidades.html', unidades=unidades_list)
+
+@app.route('/inventario/unidades/agregar', methods=['POST'])
+@login_required
+def agregar_unidad():
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        abreviatura = request.form['abreviatura']
+        
+        if add_unidad(nombre, abreviatura):
+            flash('Unidad agregada exitosamente', 'success')
+        else:
+            flash('Error al agregar unidad. El nombre o abreviatura podrían ya existir.', 'error')
+        
+        return redirect(url_for('unidades'))
+
+@app.route('/inventario/unidades/editar/<int:id>', methods=['POST'])
+@login_required
+def editar_unidad(id):
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        abreviatura = request.form['abreviatura']
+        activo = 'activo' in request.form
+        
+        if update_unidad(id, nombre, abreviatura, activo):
+            flash('Unidad actualizada exitosamente', 'success')
+        else:
+            flash('Error al actualizar unidad', 'error')
+        
+        return redirect(url_for('unidades'))
+
+@app.route('/inventario/unidades/eliminar/<int:id>')
+@login_required
+def eliminar_unidad(id):
+    if delete_unidad(id):
+        flash('Unidad eliminada exitosamente', 'success')
+    else:
+        flash('Error al eliminar unidad', 'error')
+    
+    return redirect(url_for('unidades'))
+
+# Rutas para Categorías
+@app.route('/inventario/categorias')
+@login_required
+def categorias():
+    categorias_list = get_all_categorias()
+    return render_template('categorias.html', categorias=categorias_list)
+
+@app.route('/inventario/categorias/agregar', methods=['POST'])
+@login_required
+def agregar_categoria():
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        descripcion = request.form['descripcion']
+        
+        if add_categoria(nombre, descripcion):
+            flash('Categoría agregada exitosamente', 'success')
+        else:
+            flash('Error al agregar categoría. El nombre podría ya existir.', 'error')
+        
+        return redirect(url_for('categorias'))
+
+@app.route('/inventario/categorias/editar/<int:id>', methods=['POST'])
+@login_required
+def editar_categoria(id):
+    if request.method == 'POST':
+        nombre = request.form['nombre']
+        descripcion = request.form['descripcion']
+        activo = 'activo' in request.form
+        
+        if update_categoria(id, nombre, descripcion, activo):
+            flash('Categoría actualizada exitosamente', 'success')
+        else:
+            flash('Error al actualizar categoría', 'error')
+        
+        return redirect(url_for('categorias'))
+
+@app.route('/inventario/categorias/eliminar/<int:id>')
+@login_required
+def eliminar_categoria(id):
+    if delete_categoria(id):
+        flash('Categoría eliminada exitosamente', 'success')
+    else:
+        flash('Error al eliminar categoría', 'error')
+    
+    return redirect(url_for('categorias'))
+
+# Rutas para Productos
+@app.route('/inventario/productos')
+@login_required
+def productos():
+    productos_list = get_all_productos()
+    categorias_list = get_all_categorias()
+    unidades_list = get_all_unidades()
+    productos_bajo_stock = get_productos_bajo_stock()
+    
+    return render_template('productos.html', 
+                         productos=productos_list,
+                         categorias=categorias_list,
+                         unidades=unidades_list,
+                         productos_bajo_stock=productos_bajo_stock)
+
+@app.route('/inventario/productos/agregar', methods=['POST'])
+@login_required
+def agregar_producto():
+    if request.method == 'POST':
+        codigo = request.form['codigo']
+        nombre = request.form['nombre']
+        descripcion = request.form['descripcion']
+        categoria_id = request.form['categoria_id']
+        unidad_id = request.form['unidad_id']
+        precio_compra = float(request.form['precio_compra'])
+        precio_venta = float(request.form['precio_venta'])
+        stock_minimo = int(request.form['stock_minimo'])
+        stock_actual = int(request.form['stock_actual'])
+        
+        if add_producto(codigo, nombre, descripcion, categoria_id, unidad_id, 
+                       precio_compra, precio_venta, stock_minimo, stock_actual):
+            flash('Producto agregado exitosamente', 'success')
+        else:
+            flash('Error al agregar producto. El código podría ya existir.', 'error')
+        
+        return redirect(url_for('productos'))
+    
+# Ruta para editar producto - DEBE estar ANTES de la ruta de eliminar
+@app.route('/inventario/productos/editar/<int:id>', methods=['POST'])
+@login_required
+def editar_producto(id):
+    if request.method == 'POST':
+        try:
+            print(f"=== EDITAR PRODUCTO LLAMADO ===")
+            print(f"Producto ID: {id}")
+            print(f"Datos del formulario: {request.form}")
+            
+            codigo = request.form['codigo']
+            nombre = request.form['nombre']
+            descripcion = request.form['descripcion']
+            categoria_id = request.form['categoria_id'] or None
+            unidad_id = request.form['unidad_id']
+            precio_compra = float(request.form['precio_compra'])
+            precio_venta = float(request.form['precio_venta'])
+            stock_minimo = int(request.form['stock_minimo'])
+            stock_actual = int(request.form['stock_actual'])
+            activo = 'activo' in request.form  
+
+            print(f"Activo: {activo}")  # Debug
+
+            # Llamar a la función de actualización
+            success = update_producto(id, codigo, nombre, descripcion, categoria_id, unidad_id,
+                                    precio_compra, precio_venta, stock_minimo, stock_actual, activo)
+            
+            if success:
+                print("Producto actualizado exitosamente")
+                # Devolver JSON para AJAX
+                return jsonify({
+                    'success': True, 
+                    'message': 'Producto actualizado exitosamente'
+                })
+            else:
+                print("Error en update_producto")
+                return jsonify({
+                    'success': False, 
+                    'error': 'Error al actualizar producto. El código podría ya existir.'
+                }), 400
+            
+        except Exception as e:
+            print(f"Error en editar_producto: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return jsonify({
+                'success': False, 
+                'error': f'Error interno del servidor: {str(e)}'
+            }), 500
+        
+# Ruta para eliminar producto - DEBE estar DESPUÉS de la ruta de editar
+@app.route('/inventario/productos/eliminar/<int:id>', methods=['POST'])
+def eliminar_producto(id):
+    print(f"=== ELIMINAR PRODUCTO LLAMADO ===")
+    print(f"Producto ID: {id}")
+    try:
+        print(f"Eliminando producto ID: {id}")  # Debug
+        
+        if delete_producto(id):
+            return jsonify({'success': True, 'message': 'Producto eliminado exitosamente'})
+        else:
+            return jsonify({'success': False, 'error': 'Error al eliminar producto'}), 400
+    except Exception as e:
+        print(f"Error en eliminar_producto: {str(e)}")  # Debug
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Rutas para obtener datos de categorías y unidades (JSON)
+@app.route('/inventario/categorias/listar')
+@login_required
+def listar_categorias():
+    try:
+        categorias = get_all_categorias()
+        # Convertir a formato JSON amigable
+        categorias_list = []
+        for cat in categorias:
+            categorias_list.append({
+                'id': cat['id'],
+                'nombre': cat['nombre'],
+                'descripcion': cat['descripcion'],
+                'activo': bool(cat['activo'])
+            })
+        return jsonify(categorias_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/inventario/unidades/listar')
+@login_required
+def listar_unidades():
+    try:
+        unidades = get_all_unidades()
+        # Convertir a formato JSON amigable
+        unidades_list = []
+        for und in unidades:
+            unidades_list.append({
+                'id': und['id'],
+                'nombre': und['nombre'],
+                'abreviatura': und['abreviatura'],
+                'activo': bool(und['activo'])
+            })
+        return jsonify(unidades_list)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/inventario/productos/tabla')
+@login_required
+def productos_tabla():
+    """Endpoint para cargar solo la tabla de productos via AJAX"""
+    productos_list = get_all_productos()
+    return render_template('partials/productos_table.html', productos=productos_list)
+    
+@app.route('/inventario/productos/datos/<int:producto_id>')
+def obtener_datos_producto(producto_id):
+    try:
+        producto = get_producto_by_id(producto_id)
+        
+        if producto:
+            return jsonify({
+                'id': producto['id'],
+                'codigo': producto['codigo'],
+                'nombre': producto['nombre'],
+                'descripcion': producto['descripcion'],
+                'categoria_id': producto['categoria_id'],
+                'unidad_id': producto['unidad_id'],
+                'precio_compra': float(producto['precio_compra']),
+                'precio_venta': float(producto['precio_venta']),
+                'stock_minimo': producto['stock_minimo'],
+                'stock_actual': producto['stock_actual'],
+                'activo': bool(producto['activo'])
+            })
+        else:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     create_tables()
+    create_inventory_tables()
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)

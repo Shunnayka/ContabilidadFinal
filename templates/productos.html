@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block css_files %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/productos.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="productos-container">
+    <div class="productos-content">
+        <div class="productos-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-box me-2"></i>Gestión de Productos</h1>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#agregarProductoModal">
+                    <i class="fas fa-plus me-1"></i>Agregar Producto
+                </button>
+            </div>
+        </div>
+
+        <!-- Alertas de Stock Bajo -->
+        {% if productos_bajo_stock %}
+        <div class="stock-alert alert-dismissible fade show" role="alert">
+            <h5><i class="fas fa-exclamation-triangle me-2"></i>Alertas de Stock Bajo</h5>
+            <ul class="mb-0">
+                {% for producto in productos_bajo_stock %}
+                <li>
+                    <strong>{{ producto.nombre }}</strong> -
+                    Stock actual: {{ producto.stock_actual }} {{ producto.abreviatura }}
+                    (Mínimo: {{ producto.stock_minimo }})
+                </li>
+                {% endfor %}
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <div class="productos-table-container">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="productos-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Unidad</th>
+                                <th>Precio Compra</th>
+                                <th>Precio Venta</th>
+                                <th>Stock</th>
+                                <th>Mínimo</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for producto in productos %}
+                            <tr class="{{ 'table-warning' if producto.stock_actual <= producto.stock_minimo }}">
+                                <td>
+                                    <span class="producto-codigo badge">{{ producto.codigo }}</span>
+                                </td>
+                                <td>
+                                    <div class="producto-nombre">{{ producto.nombre }}</div>
+                                    {% if producto.descripcion %}
+                                    <div class="producto-descripcion">{{ producto.descripcion[:50] }}{% if producto.descripcion|length > 50 %}...{% endif %}</div>
+                                    {% endif %}
+                                </td>
+                                <td>{{ producto.categoria_nombre or 'Sin categoría' }}</td>
+                                <td>{{ producto.unidad_nombre }} ({{ producto.abreviatura }})</td>
+                                <td>
+                                    <span class="producto-precio producto-precio-compra">${{ "%.2f"|format(producto.precio_compra) }}</span>
+                                </td>
+                                <td>
+                                    <span class="producto-precio producto-precio-venta">${{ "%.2f"|format(producto.precio_venta) }}</span>
+                                </td>
+                                <td>
+                                    <div class="producto-stock">
+                                        <span class="badge bg-{{ 'danger' if producto.stock_actual <= producto.stock_minimo else 'success' }}">
+                                            {{ producto.stock_actual }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>{{ producto.stock_minimo }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if producto.activo else 'danger' }}">
+                                        {{ 'Activo' if producto.activo else 'Inactivo' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="productos-actions">
+                                        <button class="btn btn-info" onclick="verProducto({{ producto.id }})"
+                                            title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-warning" onclick="editarProducto({{ producto.id }})"
+                                            title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-danger" onclick="eliminarProducto({{ producto.id }}, '{{ producto.nombre }}')"
+                                            title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Producto -->
+<div class="modal fade modal-productos" id="agregarProductoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar Nuevo Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('agregar_producto') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Código *</label>
+                                <input type="text" class="form-control" name="codigo" required>
+                                <div class="form-text">Código único del producto</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre *</label>
+                                <input type="text" class="form-control" name="nombre" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Descripción</label>
+                        <textarea class="form-control" name="descripcion" rows="2"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Categoría</label>
+                                <select class="form-select" name="categoria_id">
+                                    <option value="">Seleccionar categoría</option>
+                                    {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Unidad *</label>
+                                <select class="form-select" name="unidad_id" required>
+                                    <option value="">Seleccionar unidad</option>
+                                    {% for unidad in unidades %}
+                                    <option value="{{ unidad.id }}">{{ unidad.nombre }} ({{ unidad.abreviatura }})</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Precio de Compra *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="precio_compra" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Precio de Venta *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="precio_venta" step="0.01" min="0" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Stock Actual *</label>
+                                <input type="number" class="form-control" name="stock_actual" min="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Stock Mínimo *</label>
+                                <input type="number" class="form-control" name="stock_minimo" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Producto -->
+<div class="modal fade modal-productos" id="editarProductoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formEditarProducto">
+                <div class="modal-body">
+                    <div id="editarProductoContent">
+                        <!-- Contenido cargado dinámicamente -->
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ver Producto -->
+<div class="modal fade modal-productos" id="verProductoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="verProductoContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/productos.js') }}"></script>
+
+{% endblock %}

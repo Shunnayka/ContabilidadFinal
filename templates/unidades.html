@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block css_files %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/unidades.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="unidades-container">
+    <div class="unidades-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1><i class="fas fa-balance-scale me-2"></i>Gestión de Unidades</h1>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#agregarUnidadModal">
+                <i class="fas fa-plus me-1"></i>Agregar Unidad
+            </button>
+        </div>
+    </div>
+
+    <div class="unidades-card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="unidades-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Abreviatura</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for unidad in unidades %}
+                        <tr>
+                            <td>{{ unidad.id }}</td>
+                            <td>{{ unidad.nombre }}</td>
+                            <td>{{ unidad.abreviatura }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if unidad.activo else 'danger' }}">
+                                    {{ 'Activo' if unidad.activo else 'Inactivo' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="unidades-actions">
+                                    <button class="btn btn-warning" 
+                                            onclick="editarUnidad({{ unidad.id }}, '{{ unidad.nombre }}', '{{ unidad.abreviatura }}', {{ unidad.activo }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <a href="{{ url_for('eliminar_unidad', id=unidad.id) }}" 
+                                       class="btn btn-danger"
+                                       onclick="return confirm('¿Está seguro de eliminar esta unidad?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar Unidad -->
+<div class="modal fade modal-unidades" id="agregarUnidadModal" tabindex="-1" aria-labelledby="agregarUnidadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="agregarUnidadModalLabel">Agregar Nueva Unidad</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{{ url_for('agregar_unidad') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required placeholder="Ej: Kilogramo">
+                    </div>
+                    <div class="mb-3">
+                        <label for="abreviatura" class="form-label">Abreviatura *</label>
+                        <input type="text" class="form-control" id="abreviatura" name="abreviatura" required maxlength="10" placeholder="Ej: KG">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Unidad -->
+<div class="modal fade modal-unidades" id="editarUnidadModal" tabindex="-1" aria-labelledby="editarUnidadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editarUnidadModalLabel">Editar Unidad</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="formEditarUnidad">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editNombre" class="form-label">Nombre *</label>
+                        <input type="text" class="form-control" id="editNombre" name="nombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAbreviatura" class="form-label">Abreviatura *</label>
+                        <input type="text" class="form-control" id="editAbreviatura" name="abreviatura" required maxlength="10">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editActivo" name="activo">
+                        <label class="form-check-label" for="editActivo">Activo</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function editarUnidad(id, nombre, abreviatura, activo) {
+    // Llenar los campos del formulario
+    document.getElementById('editNombre').value = nombre;
+    document.getElementById('editAbreviatura').value = abreviatura;
+    document.getElementById('editActivo').checked = activo;
+    
+    // Actualizar la acción del formulario
+    const form = document.getElementById('formEditarUnidad');
+    form.action = "{{ url_for('editar_unidad', id=0) }}".replace('0', id);
+    
+    // Mostrar el modal usando Bootstrap
+    const modalElement = document.getElementById('editarUnidadModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+}
+
+// Inicialización cuando el documento esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página de unidades cargada correctamente');
+});
+</script>
+
+{% endblock %}

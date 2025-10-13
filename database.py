@@ -295,3 +295,296 @@ def update_user_password(username, new_password):
         return False
     finally:
         conn.close()
+
+# Agrega estas funciones al archivo database.py
+
+def create_inventory_tables():
+    """Crear tablas para el inventario"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Tabla de unidades de medida
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS unidades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE,
+            abreviatura TEXT NOT NULL UNIQUE,
+            activo BOOLEAN DEFAULT 1,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Tabla de categorías
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS categorias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL UNIQUE,
+            descripcion TEXT,
+            activo BOOLEAN DEFAULT 1,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    # Tabla de productos
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS productos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            codigo TEXT UNIQUE NOT NULL,
+            nombre TEXT NOT NULL,
+            descripcion TEXT,
+            categoria_id INTEGER,
+            unidad_id INTEGER,
+            precio_compra DECIMAL(10,2) DEFAULT 0,
+            precio_venta DECIMAL(10,2) DEFAULT 0,
+            stock_minimo INTEGER DEFAULT 0,
+            stock_actual INTEGER DEFAULT 0,
+            activo BOOLEAN DEFAULT 1,
+            fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (categoria_id) REFERENCES categorias (id),
+            FOREIGN KEY (unidad_id) REFERENCES unidades (id)
+        )
+    ''')
+    
+    # Insertar unidades por defecto
+    unidades_default = [
+        ('Unidad', 'UND'),
+        ('Kilogramo', 'KG'),
+        ('Gramo', 'G'),
+        ('Litro', 'LT'),
+        ('Mililitro', 'ML'),
+        ('Metro', 'M'),
+        ('Centímetro', 'CM')
+    ]
+    
+    cursor.executemany(
+        'INSERT OR IGNORE INTO unidades (nombre, abreviatura) VALUES (?, ?)',
+        unidades_default
+    )
+    
+    # Insertar categorías por defecto
+    categorias_default = [
+        ('Materia Prima', 'Materiales básicos para producción'),
+        ('Producto Terminado', 'Productos listos para la venta'),
+        ('Suministros', 'Materiales de oficina y limpieza'),
+        ('Herramientas', 'Equipos y herramientas de trabajo')
+    ]
+    
+    cursor.executemany(
+        'INSERT OR IGNORE INTO categorias (nombre, descripcion) VALUES (?, ?)',
+        categorias_default
+    )
+    
+    conn.commit()
+    conn.close()
+
+# Funciones para unidades
+def get_all_unidades():
+    """Obtener todas las unidades"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM unidades WHERE activo = 1 ORDER BY nombre')
+    unidades = cursor.fetchall()
+    conn.close()
+    return unidades
+
+def add_unidad(nombre, abreviatura):
+    """Agregar nueva unidad"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'INSERT INTO unidades (nombre, abreviatura) VALUES (?, ?)',
+            (nombre, abreviatura)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
+
+def update_unidad(id, nombre, abreviatura, activo):
+    """Actualizar unidad"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'UPDATE unidades SET nombre = ?, abreviatura = ?, activo = ? WHERE id = ?',
+            (nombre, abreviatura, activo, id)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
+
+def delete_unidad(id):
+    """Eliminar unidad (eliminación lógica)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('UPDATE unidades SET activo = 0 WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
+
+# Funciones para categorías
+def get_all_categorias():
+    """Obtener todas las categorías"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM categorias WHERE activo = 1 ORDER BY nombre')
+    categorias = cursor.fetchall()
+    conn.close()
+    return categorias
+
+def add_categoria(nombre, descripcion):
+    """Agregar nueva categoría"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'INSERT INTO categorias (nombre, descripcion) VALUES (?, ?)',
+            (nombre, descripcion)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
+
+def update_categoria(id, nombre, descripcion, activo):
+    """Actualizar categoría"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'UPDATE categorias SET nombre = ?, descripcion = ?, activo = ? WHERE id = ?',
+            (nombre, descripcion, activo, id)
+        )
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
+
+def delete_categoria(id):
+    """Eliminar categoría (eliminación lógica)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('UPDATE categorias SET activo = 0 WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
+
+# Funciones para productos
+def get_all_productos():
+    """Obtener todos los productos con información de categoría y unidad"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.*, c.nombre as categoria_nombre, u.nombre as unidad_nombre, u.abreviatura
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        LEFT JOIN unidades u ON p.unidad_id = u.id
+        ORDER BY p.nombre
+    ''')
+    productos = cursor.fetchall()
+    conn.close()
+    return productos
+
+def add_producto(codigo, nombre, descripcion, categoria_id, unidad_id, precio_compra, precio_venta, stock_minimo, stock_actual):
+    """Agregar nuevo producto"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO productos 
+            (codigo, nombre, descripcion, categoria_id, unidad_id, precio_compra, precio_venta, stock_minimo, stock_actual)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (codigo, nombre, descripcion, categoria_id, unidad_id, precio_compra, precio_venta, stock_minimo, stock_actual))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error al agregar producto: {e}")
+        conn.close()
+        return False
+
+def update_producto(id, codigo, nombre, descripcion, categoria_id, unidad_id, precio_compra, precio_venta, stock_minimo, stock_actual, activo):
+    """Actualizar producto"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        print(f"Actualizando producto en BD - ID: {id}")
+        print(f"Valores: codigo={codigo}, activo={activo}")
+        
+        cursor.execute('''
+            UPDATE productos 
+            SET codigo = ?, nombre = ?, descripcion = ?, categoria_id = ?, unidad_id = ?, 
+                precio_compra = ?, precio_venta = ?, stock_minimo = ?, stock_actual = ?, activo = ?
+            WHERE id = ?
+        ''', (codigo, nombre, descripcion, categoria_id, unidad_id, precio_compra, precio_venta, stock_minimo, stock_actual, activo, id))
+        
+        conn.commit()
+        print("Producto actualizado en BD exitosamente")
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error en update_producto: {e}")
+        conn.close()
+        return False
+
+def delete_producto(id):
+    """Eliminar producto (eliminación lógica)"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('DELETE from productos WHERE id = ?', (id,))
+        conn.commit()
+        conn.close()
+        return True
+    except:
+        conn.close()
+        return False
+
+def get_producto_by_id(id):
+    """Obtener producto por ID"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.*, c.nombre as categoria_nombre, u.nombre as unidad_nombre
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        LEFT JOIN unidades u ON p.unidad_id = u.id
+        WHERE p.id = ?
+    ''', (id,))
+    producto = cursor.fetchone()
+    conn.close()
+    return producto
+
+def get_productos_bajo_stock():
+    """Obtener productos con stock por debajo del mínimo"""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT p.*, c.nombre as categoria_nombre, u.nombre as unidad_nombre
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        LEFT JOIN unidades u ON p.unidad_id = u.id
+        WHERE p.stock_actual <= p.stock_minimo AND p.activo = 1
+        ORDER BY p.stock_actual ASC
+    ''')
+    productos = cursor.fetchall()
+    conn.close()
+    return productos
