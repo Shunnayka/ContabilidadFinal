@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <h1>📚 Módulos de Aprendizaje</h1>
+    <p>Selecciona un módulo para fortalecer tus competencias digitales</p>
+
+    <div class="grid">
+        {% for modulo in modulos %}
+        <div class="card modulo-card 
+            {% if modulo.nivel_dificultad == 'basico' %}modulo-basico
+            {% elif modulo.nivel_dificultad == 'intermedio' %}modulo-intermedio
+            {% else %}modulo-avanzado{% endif %}">
+
+            <div class="modulo-header">
+                <h3>{{ modulo.nombre }}</h3>
+                <span class="nivel-badge nivel-{{ modulo.nivel_dificultad }}">
+                    {{ modulo.get_nivel_dificultad_display }}
+                </span>
+            </div>
+
+            <p class="modulo-descripcion">{{ modulo.descripcion }}</p>
+
+            <!-- Indicador de estado -->
+            {% if modulo.esta_completado %}
+            <div class="estado-completado">
+                ✅ <strong>Módulo Completado</strong>
+                <small style="display: block; margin-top: 0.25rem;">
+                    ¡Felicidades! Puedes repetirlo para reforzar conocimientos
+                </small>
+            </div>
+            {% else %}
+            <div class="estado-pendiente">
+                📚 <strong>Listo para comenzar</strong>
+            </div>
+            {% endif %}
+
+            <div class="modulo-footer">
+                <small class="duracion">⏱️ {{ modulo.duracion_minutos }} min</small>
+
+                <!-- Botones finales -->
+                {% if modulo.esta_completado %}
+                <div style="display: flex; gap: 0.5rem;">
+                    <a href="{% url 'detalle_modulo' modulo.id %}" class="btn btn-repetir">
+                        🔄 Repasar
+                    </a>
+                    <a href="{% url 'lista_certificados' %}" class="btn btn-certificado">
+                        🎓 Certificado
+                    </a>
+                </div>
+                {% else %}
+                <a href="{% url 'detalle_modulo' modulo.id %}" class="btn btn-comenzar">
+                    📖 Empezar
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="card">
+            <p>📝 No hay módulos disponibles todavía.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Mensaje informativo -->
+<div class="card" style="margin-top: 2rem; background: #e8f4fd; border-left: 4px solid #3498db;">
+    <h3>💡 ¿Cómo funciona?</h3>
+    <ol style="margin: 0.5rem 0; padding-left: 1.5rem;">
+        <li><strong>Comienza un módulo</strong> desde aquí</li>
+        <li><strong>Completa el diagnóstico</strong> para evaluar tus habilidades</li>
+        <li><strong>Revisa tu progreso</strong> en el panel correspondiente</li>
+        <li><strong>Repite módulos</strong> para reforzar conocimientos</li>
+        <li><strong>Descarga tus certificados</strong> cuando completes los módulos</li>
+    </ol>
+</div>
+{% endblock %}

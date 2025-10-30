@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 100px auto;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">🔐 Iniciar Sesión</h2>
+    
+    {% if form.errors %}
+    <div style="background: #ffeaa7; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;">
+        ❌ Usuario o contraseña incorrectos
+    </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Usuario:</label>
+            {{ form.username }}
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <label>Contraseña:</label>
+            {{ form.password }}
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%;">🎯 Entrar a la Plataforma</button>
+    </form>
+
+    <p style="text-align: center; margin-top: 1rem;">
+        <small>¿Primera vez? <a href="{% url 'register' %}">Crear cuenta</a></small>
+    </p>
+</div>
+{% endblock %}

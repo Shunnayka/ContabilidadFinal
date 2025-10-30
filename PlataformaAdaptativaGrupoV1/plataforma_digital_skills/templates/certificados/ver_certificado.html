@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <a href="{% url 'lista_certificados' %}" class="btn" style="background: #95a5a6;">← Volver a Certificados</a>
+    </div>
+
+    <!-- Vista previa del certificado -->
+    <div style="border: 2px solid #3498db; border-radius: 10px; padding: 3rem; background: linear-gradient(135deg, #f8f9fa, #e8f4fd); margin: 2rem 0;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <span style="font-size: 4rem;">🎓</span>
+            <h1 style="color: #2c3e50; margin: 1rem 0; font-size: 2.5rem;">CERTIFICADO DE COMPLETACIÓN</h1>
+        </div>
+        
+        <div style="text-align: center; margin: 3rem 0;">
+            <p style="font-size: 1.3rem; color: #2c3e50;">Se otorga el presente certificado a:</p>
+            <h2 style="color: #e74c3c; font-size: 2.2rem; margin: 1.5rem 0; font-weight: bold;">
+                {{ usuario.get_full_name|default:usuario.username }}
+            </h2>
+            <p style="font-size: 1.3rem; color: #2c3e50;">Por haber completado satisfactoriamente el módulo:</p>
+            <h3 style="color: #3498db; font-size: 1.8rem; margin: 1.5rem 0; font-style: italic;">
+                "{{ modulo.nombre }}"
+            </h3>
+        </div>
+        
+        <div style="background: white; padding: 1.5rem; border-radius: 8px; margin: 2rem 0; border-left: 4px solid #27ae60;">
+            <p style="color: #666; margin: 0; font-size: 1.1rem;">
+                {{ modulo.descripcion }}
+            </p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 3rem;">
+            <div style="display: inline-block; border-top: 2px solid #2c3e50; padding-top: 1rem;">
+                <p style="color: #7f8c8d; margin: 0;">
+                    <strong>Plataforma Digital Skills</strong><br>
+                    Competencias Digitales
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones -->
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="{% url 'generar_certificado' modulo.id %}" class="btn" style="background: #27ae60; padding: 1rem 2rem; font-size: 1.2rem;">
+            📄 Descargar Certificado PDF
+        </a>
+        <a href="{% url 'lista_certificados' %}" class="btn" style="background: #3498db; padding: 1rem 2rem; font-size: 1.2rem;">
+            🏆 Ver Todos los Certificados
+        </a>
+    </div>
+</div>
+{% endblock %}

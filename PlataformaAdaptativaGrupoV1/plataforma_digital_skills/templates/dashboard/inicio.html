@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <h2>¡Bienvenid@ a tu plataforma! 🫡</h2>
+    <p>Tu sistema de competencias digitales está funcionando perfectamente.</p>
+    
+    <div class="grid">
+        <div class="card card-security">
+            <h3>📚 Módulos</h3>
+            <p>Aprende habilidades digitales esenciales</p>
+            <a href="/modulos/" class="btn">Explorar Módulos</a>
+        </div>
+         
+        <div class="card card-ai">
+            <h3>🤖 Asistente IA</h3>
+            <p>Obtén ayuda personalizada</p>
+            <a href="/asistente/" class="btn">Chat IA</a>
+        </div>
+        
+        <div class="card card-certificate">
+            <h3>🏆 Certificados</h3>
+            <p>Obtén tus certificaciones</p>
+            <a href="/certificados/" class="btn">Ver Certificados</a>
+        </div>
+        
+        <div class="card card-office">
+            <h3>📈 Progreso</h3>
+            <p>Revisa tu avance de aprendizaje</p>
+            <a href="/progreso/" class="btn">Mi Progreso</a>
+        </div>
+    </div>
+</div>
+
+<style>
+.btn {
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+</style>
+
+
+
+
+
+{% endblock %}

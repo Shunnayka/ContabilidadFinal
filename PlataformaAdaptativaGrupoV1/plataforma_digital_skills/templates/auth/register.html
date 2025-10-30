@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card" style="max-width: 400px; margin: 50px auto;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">🚀 Crear Cuenta</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Usuario:</label>
+            {{ form.username }}
+            <small style="color: #666;">Elige un nombre de usuario único</small>
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label>Contraseña:</label>
+            {{ form.password1 }}
+            <small style="color: #666;">Mínimo 8 caracteres, no muy común</small>
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <label>Confirmar contraseña:</label>
+            {{ form.password2 }}
+        </div>
+
+        <button type="submit" class="btn" style="width: 100%; background: #2ecc71;">💡 Crear Mi Cuenta</button>
+    </form>
+
+    <p style="text-align: center; margin-top: 1rem;">
+        <small>¿Ya tienes cuenta? <a href="{% url 'login' %}">Iniciar sesión</a></small>
+    </p>
+</div>
+{% endblock %}

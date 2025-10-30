@@ -1,0 +1,35 @@
+<!-- templates/evaluacion/diagnostico.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <h1>📊 Diagnóstico de Competencias Digitales</h1>
+    <p>Responde estas preguntas para evaluar tu nivel actual</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% for pregunta in preguntas %}
+        <div class="card" style="margin: 2rem 0; border-left-color: #3498db;">
+            <h3>Pregunta {{ forloop.counter }}</h3>
+            <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">{{ pregunta.texto }}</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                {% for key, valor in pregunta.opciones.items %}
+                <label style="display: flex; align-items: center; padding: 1rem; background: #f8f9fa; border-radius: 5px; cursor: pointer;">
+                    <input type="radio" name="pregunta_{{ pregunta.id }}" value="{{ key }}" style="margin-right: 1rem;">
+                    <strong style="margin-right: 0.5rem;">{{ key }}.</strong> {{ valor }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <button type="submit" class="btn" style="padding: 1rem 2rem; font-size: 1.1rem;">
+                🎯 Terminar Diagnóstico
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <h1>🏆 Mis Certificados</h1>
+    <p>Revisa y descarga tus certificados de competencias digitales</p>
+    
+    {% if modulos_completados %}
+    <div class="grid">
+        {% for modulo in modulos_completados %}
+        <div class="card card-certificate">
+            <div style="text-align: center; margin-bottom: 1rem;">
+                <span style="font-size: 3rem;">🎓</span>
+            </div>
+            
+            <h3 style="text-align: center; color: #2c3e50;">{{ modulo.nombre }}</h3>
+            <p style="text-align: center; color: #666; margin-bottom: 1.5rem;">{{ modulo.descripcion }}</p>
+            
+            <div style="background: #e8f6f3; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; text-align: center;">
+                <strong>✅ Módulo Completado</strong>
+                <br>
+                <small>Certificado disponible</small>
+            </div>
+            
+            <div style="text-align: center; display: flex; gap: 0.5rem; justify-content: center;">
+                <a href="{% url 'ver_certificado' modulo.id %}" class="btn" style="background: #3498db;">
+                    👁️ Ver Certificado
+                </a>
+                <a href="{% url 'generar_certificado' modulo.id %}" class="btn" style="background: #27ae60;">
+                    📄 Descargar PDF
+                </a>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1rem;">
+                <small style="color: #7f8c8d;">
+                    ⏱️ {{ modulo.duracion_minutos }} min • 
+                    {{ modulo.get_nivel_dificultad_display }}
+                </small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="card">
+        <div style="text-align: center; padding: 3rem;">
+            <span style="font-size: 4rem;">📚</span>
+            <h3>No hay certificados disponibles</h3>
+            <p>Completa algunos módulos para generar tus certificados</p>
+            <a href="{% url 'lista_modulos' %}" class="btn">Explorar Módulos</a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

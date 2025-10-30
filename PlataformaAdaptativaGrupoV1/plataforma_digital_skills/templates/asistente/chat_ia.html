@@ -1,0 +1,112 @@
+<!-- templates/asistente/chat_ia.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="card">
+    <h1>🤖 Asistente Virtual de Aprendizaje</h1>
+    <p>Obtén ayuda personalizada en tus competencias digitales</p>
+    
+    <div id="chat-container" style="height: 400px; border: 2px solid #3498db; border-radius: 10px; padding: 1rem; margin: 1rem 0; overflow-y: auto; background: #f8f9fa;">
+        <div id="chat-messages">
+            <!-- Mensajes aparecerán aquí -->
+        </div>
+    </div>
+    
+    <div style="display: flex; gap: 0.5rem;">
+        <input type="text" id="user-input" placeholder="Escribe tu pregunta sobre competencias digitales..." 
+               style="flex: 1; padding: 1rem; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+        <button onclick="enviarMensaje()" class="btn" style="padding: 1rem 2rem;">➤ Enviar</button>
+    </div>
+    
+    <div style="margin-top: 1rem; text-align: center;">
+        <small>💡 <strong>Preguntas sugeridas:</strong> 
+            <span class="sugerencia" onclick="usarSugerencia('¿Cómo crear una contraseña segura?')">Contraseñas</span> • 
+            <span class="sugerencia" onclick="usarSugerencia('¿Qué es el phishing?')">Phishing</span> • 
+            <span class="sugerencia" onclick="usarSugerencia('¿Para qué sirve Excel?')">Excel</span> • 
+            <span class="sugerencia" onclick="usarSugerencia('¿Cómo ver mi progreso?')">Progreso</span>
+        </small>
+    </div>
+</div>
+
+<script>
+// Mostrar mensaje de bienvenida al cargar
+window.onload = function() {
+    agregarMensaje('asistente', '¡Hola! 👋 Soy tu asistente de competencias digitales. ¿En qué puedo ayudarte? Puedo orientarte sobre seguridad, ofimática, tu progreso y más.');
+}
+
+function agregarMensaje(tipo, contenido) {
+    const chat = document.getElementById('chat-messages');
+    const mensajeDiv = document.createElement('div');
+    mensajeDiv.className = tipo === 'usuario' ? 'mensaje-usuario' : 'mensaje-asistente';
+    mensajeDiv.innerHTML = contenido.replace(/\n/g, '<br>');
+    chat.appendChild(mensajeDiv);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function enviarMensaje() {
+    const input = document.getElementById('user-input');
+    const mensaje = input.value.trim();
+    
+    if (mensaje) {
+        agregarMensaje('usuario', mensaje);
+        input.value = '';
+        
+        // Enviar al servidor
+        fetch('/asistente/api/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+            body: JSON.stringify({message: mensaje})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.respuesta) {
+                agregarMensaje('asistente', data.respuesta);
+            }
+        });
+    }
+}
+
+function usarSugerencia(sugerencia) {
+    document.getElementById('user-input').value = sugerencia;
+}
+
+// Enviar con Enter
+document.getElementById('user-input').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        enviarMensaje();
+    }
+});
+</script>
+
+<style>
+.mensaje-usuario {
+    background: #3498db;
+    color: white;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 0.5rem 0;
+    max-width: 80%;
+    margin-left: auto;
+}
+
+.mensaje-asistente {
+    background: white;
+    border: 1px solid #ddd;
+    padding: 1rem;
+    border-radius: 10px;
+    margin: 0.5rem 0;
+    max-width: 80%;
+}
+
+.sugerencia {
+    color: #3498db;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.sugerencia:hover {
+    color: #2980b9;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <a href="{% url 'lista_modulos' %}" class="btn" style="background: #95a5a6;">← Volver a Módulos</a>
+        </div>
+
+        <div>
+            <span class="nivel-badge nivel-{{ modulo.nivel_dificultad }}">
+                {{ modulo.get_nivel_dificultad_display }}
+            </span>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h1>{{ modulo.nombre }}</h1>
+        <p style="color: #666; font-size: 1.1rem;">{{ modulo.descripcion }}</p>
+        <small style="color: #7f8c8d;">⏱️ {{ modulo.duracion_minutos }} minutos</small>
+    </div>
+
+    <!-- Barra de progreso -->
+    <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span>Progreso:</span>
+            <span><strong>{{ progreso.porcentaje_completado }}%</strong></span>
+        </div>
+        <div style="background: #e9ecef; height: 10px; border-radius: 5px;">
+            <div
+                style="background: #27ae60; height: 100%; width: {{ progreso.porcentaje_completado }}%; border-radius: 5px;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido del módulo -->
+    <div class="grid">
+        {% for contenido in contenidos %}
+        <div class="card" style="{% if contenido.tipo == 'teoria' %}border-left-color: #3498db; background: #e8f4fd;
+                                {% elif contenido.tipo == 'ejemplo' %}border-left-color: #2ecc71; background: #f0f8f0;
+                                {% else %}border-left-color: #f39c12; background: #fff8e1;{% endif %}">
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                <span style="font-size: 1.5rem; margin-right: 0.5rem;">
+                    {% if contenido.tipo == 'teoria' %}📖
+                    {% elif contenido.tipo == 'ejemplo' %}💡
+                    {% else %}🎯{% endif %}
+                </span>
+                <h3 style="margin: 0;">{{ contenido.titulo }}</h3>
+            </div>
+
+            <div style="background: white; padding: 1rem; border-radius: 5px; margin: 1rem 0;">
+                {{ contenido.contenido|linebreaks }}
+            </div>
+
+            <small style="color: #7f8c8d; text-transform: capitalize;">
+                {{ contenido.get_tipo_display }}
+            </small>
+        </div>
+        {% empty %}
+        <div class="card">
+            <p>📝 Este módulo no tiene contenido disponible todavía.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Botones finales -->
+    {% if modulo_completado %}
+    <div style="text-align: center; margin-top: 2rem; padding: 1.5rem; background: #d4edda; border-radius: 8px;">
+        <h3 style="color: #155724; margin: 0;">✅ Módulo Completado</h3>
+        <p style="color: #0f5132; margin: 0.5rem 0 0 0;">
+            ¡Ya completaste este módulo! Puedes repasar el contenido o repetir la evaluación.
+        </p>
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/evaluacion/?modulo={{ modulo.id }}" class="btn" style="background: #e67e22;">
+                🔄 Repetir Evaluación
+            </a>
+            <a href="{% url 'lista_certificados' %}" class="btn" style="background: #27ae60;">
+                🎓 Ver Certificado
+            </a>
+            <a href="{% url 'lista_modulos' %}" class="btn" style="background: #3498db;">
+                📚 Volver a Módulos
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- Si NO está completado, mostrar botón para evaluación -->
+    <div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid #ecf0f1;">
+        <h3>¿Listo para la evaluación?</h3>
+        <p style="color: #666; margin-bottom: 1.5rem;">
+            Una vez que hayas revisado todo el contenido, realiza la evaluación para completar el módulo.
+        </p>
+        <a href="/evaluacion/?modulo={{ modulo.id }}" class="btn"
+            style="background: #e67e22; padding: 1rem 2rem; font-size: 1.1rem;">
+            🚀 Realizar Evaluación
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
